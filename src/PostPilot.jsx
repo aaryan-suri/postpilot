@@ -43,6 +43,22 @@ export default function PostPilot() {
   const [contentQueue, setContentQueue] = useState([]);
   const [approvedPosts, setApprovedPosts] = useState([]);
   const contentRef = useRef(null);
+  const [screenHistory, setScreenHistory] = useState(["landing"]);
+
+  const navigateTo = (newScreen) => {
+    setScreenHistory(prev => [...prev, newScreen]);
+    setScreen(newScreen);
+  };
+
+  const goBack = () => {
+    if (screenHistory.length > 1) {
+      const newHistory = [...screenHistory];
+      newHistory.pop();
+      const previousScreen = newHistory[newHistory.length - 1];
+      setScreenHistory(newHistory);
+      setScreen(previousScreen);
+    }
+  };
 
   const togglePlatform = (p) => {
     setPlatforms(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]);
@@ -59,16 +75,21 @@ export default function PostPilot() {
   const generateContent = async (event) => {
     setSelectedEvent(event);
     setGenerating(true);
-    setScreen("generate");
+    navigateTo("generate");
 
     try {
-      const response = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: [{
+      let data;
+      // Try proxy first (Vercel deployment), then direct API (artifact context)
+      const endpoints = ["/api/generate", "https://api.anthropic.com/v1/messages"];
+      for (const url of endpoints) {
+        try {
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              model: "claude-sonnet-4-20250514",
+              max_tokens: 1000,
+              messages: [{
             role: "user",
             content: `You are a social media manager for a student organization. Generate a content plan for an upcoming event.
 
@@ -101,22 +122,34 @@ Generate 4-5 posts across the event lifecycle (teaser, announcement, reminder, d
           }]
         })
       });
+          if (response.ok) {
+            data = await response.json();
+            break;
+          }
+        } catch (e) { continue; }
+      }
 
-      const data = await response.json();
-      const text = data.content.map(i => i.text || "").join("\n");
-      const clean = text.replace(/```json|```/g, "").trim();
-      const parsed = JSON.parse(clean);
-      setGeneratedPosts(prev => ({ ...prev, [event.id]: parsed.posts }));
+      if (data && data.content) {
+        const text = data.content.map(i => i.text || "").join("\n");
+        const clean = text.replace(/```json|```/g, "").trim();
+        const parsed = JSON.parse(clean);
+        setGeneratedPosts(prev => ({ ...prev, [event.id]: parsed.posts }));
+      } else {
+        throw new Error("No valid response from API");
+      }
     } catch (err) {
       console.error("Generation error:", err);
-      // Fallback content
+      // Fallback content — smart defaults based on event type
+      const plat1 = platforms[0] || "Instagram";
+      const plat2 = platforms[1] || platforms[0] || "Instagram";
+      const tag = orgName ? `#${orgName.replace(/\s/g, "")}` : "#OurOrg";
       setGeneratedPosts(prev => ({
         ...prev,
         [event.id]: [
-          { platform: platforms[0] || "Instagram", type: "announcement", timing: "5 days before event", caption: `📢 Mark your calendars! ${event.title} is coming up on ${event.date} at ${event.time}. ${event.description} See you there! 🎉`, hashtags: `#${orgName.replace(/\s/g, "")} #UMD #Terps`, visual_suggestion: "Eye-catching graphic with event details and org branding" },
-          { platform: platforms[0] || "Instagram", type: "reminder", timing: "1 day before event", caption: `⏰ TOMORROW! Don't forget about ${event.title}! ${event.location} at ${event.time}. Bring your friends! 👥`, hashtags: `#${orgName.replace(/\s/g, "")} #UMD`, visual_suggestion: "Countdown-style graphic or story with location pin" },
-          { platform: platforms[0] || "Instagram", type: "story", timing: "Day of event, 2 hours before", caption: `We're setting up for ${event.title} right now! 🔥 Slide up if you're coming tonight!`, hashtags: "", visual_suggestion: "Behind-the-scenes photo or boomerang of setup" },
-          { platform: platforms[1] || "Instagram", type: "recap", timing: "Day after event", caption: `What an incredible turnout at ${event.title}! 🙌 Thanks to everyone who came out. Stay tuned for more events coming soon! Tag yourself in the comments 👇`, hashtags: `#${orgName.replace(/\s/g, "")} #UMD #CampusLife`, visual_suggestion: "Photo carousel of event highlights, group photos" },
+          { platform: plat1, type: "announcement", timing: "5 days before event", caption: `📢 Mark your calendars! ${event.title} is coming up on ${event.date} at ${event.time}.\n\n${event.description}\n\nDrop a 🔥 if you're pulling up!`, hashtags: `${tag} #UMD #Terps #CampusLife`, visual_suggestion: "Bold event announcement graphic with org colors, event name large, date/time/location clearly visible" },
+          { platform: plat1, type: "reminder", timing: "1 day before event", caption: `⏰ TOMORROW! ${event.title} is going down at ${event.location}, ${event.time}.\n\nDon't sleep on this one — bring a friend and we'll see you there! 👥`, hashtags: `${tag} #UMD`, visual_suggestion: "Countdown-style graphic with '1 DAY' prominent, location pin, energetic design" },
+          { platform: plat2, type: "story", timing: "Day of event, 2 hours before", caption: `We're setting up for ${event.title} right now! 🔥\n\nPull up tonight — you don't want to miss this one.`, hashtags: "", visual_suggestion: "Behind-the-scenes photo or video of room/venue setup in progress" },
+          { platform: plat1, type: "recap", timing: "Day after event", caption: `What a night! 🙌 ${event.title} was one for the books.\n\nHuge thanks to everyone who came out and made it special. If you missed it, don't worry — we've got more coming soon.\n\nTag yourself in the comments 👇`, hashtags: `${tag} #UMD #CampusLife #TerpsDoItBetter`, visual_suggestion: "Photo carousel: 4-6 best event photos showing crowd, speakers/activities, group shots" },
         ]
       }));
     }
@@ -154,7 +187,7 @@ Generate 4-5 posts across the event lifecycle (teaser, announcement, reminder, d
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #E85D31, #E8B931)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>✈</div>
             <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.5px" }}>PostPilot</span>
           </div>
-          <button onClick={() => setScreen("onboard")} style={{ background: "linear-gradient(135deg, #E85D31, #E8B931)", border: "none", color: "#fff", padding: "10px 28px", borderRadius: 50, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "transform 0.2s", letterSpacing: "0.3px" }} onMouseOver={e => e.target.style.transform = "scale(1.05)"} onMouseOut={e => e.target.style.transform = "scale(1)"}>
+          <button onClick={() => navigateTo("onboard")} style={{ background: "linear-gradient(135deg, #E85D31, #E8B931)", border: "none", color: "#fff", padding: "10px 28px", borderRadius: 50, fontSize: 14, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", transition: "transform 0.2s", letterSpacing: "0.3px" }} onMouseOver={e => e.target.style.transform = "scale(1.05)"} onMouseOut={e => e.target.style.transform = "scale(1)"}>
             Get Started →
           </button>
         </nav>
@@ -171,7 +204,7 @@ Generate 4-5 posts across the event lifecycle (teaser, announcement, reminder, d
           <p style={{ fontSize: 18, color: "rgba(255,255,255,0.55)", maxWidth: 520, margin: "0 auto 44px", lineHeight: 1.6, fontWeight: 300 }}>
             PostPilot turns your org's Google Calendar into a fully managed social media presence. No design skills. No content planning. No daily effort.
           </p>
-          <button onClick={() => setScreen("onboard")} style={{ background: "linear-gradient(135deg, #E85D31, #E8B931)", border: "none", color: "#fff", padding: "16px 44px", borderRadius: 50, fontSize: 16, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 8px 32px rgba(232,89,49,0.3)", transition: "all 0.3s", letterSpacing: "0.3px" }} onMouseOver={e => { e.target.style.transform = "translateY(-2px)"; e.target.style.boxShadow = "0 12px 40px rgba(232,89,49,0.4)"; }} onMouseOut={e => { e.target.style.transform = "translateY(0)"; e.target.style.boxShadow = "0 8px 32px rgba(232,89,49,0.3)"; }}>
+          <button onClick={() => navigateTo("onboard")} style={{ background: "linear-gradient(135deg, #E85D31, #E8B931)", border: "none", color: "#fff", padding: "16px 44px", borderRadius: 50, fontSize: 16, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 8px 32px rgba(232,89,49,0.3)", transition: "all 0.3s", letterSpacing: "0.3px" }} onMouseOver={e => { e.target.style.transform = "translateY(-2px)"; e.target.style.boxShadow = "0 12px 40px rgba(232,89,49,0.4)"; }} onMouseOut={e => { e.target.style.transform = "translateY(0)"; e.target.style.boxShadow = "0 8px 32px rgba(232,89,49,0.3)"; }}>
             Launch Demo →
           </button>
         </div>
@@ -215,9 +248,14 @@ Generate 4-5 posts across the event lifecycle (teaser, announcement, reminder, d
       <div style={{ minHeight: "100vh", background: "#0A0A0B", color: "#fff", fontFamily: "'DM Sans', sans-serif", position: "relative" }}>
         <div style={{ position: "absolute", top: -120, right: -120, width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, rgba(232,89,49,0.12) 0%, transparent 70%)", filter: "blur(60px)", pointerEvents: "none" }} />
 
-        <nav style={{ display: "flex", alignItems: "center", gap: 10, padding: "24px 48px" }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #E85D31, #E8B931)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>✈</div>
-          <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.5px" }}>PostPilot</span>
+        <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "24px 48px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={goBack}>
+            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #E85D31, #E8B931)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>✈</div>
+            <span style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.5px" }}>PostPilot</span>
+          </div>
+          <button onClick={goBack} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", padding: "8px 20px", borderRadius: 50, fontSize: 13, cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}>
+            ← Back
+          </button>
         </nav>
 
         <div style={{ maxWidth: 560, margin: "0 auto", padding: "40px 32px 80px" }}>
@@ -270,7 +308,7 @@ Generate 4-5 posts across the event lifecycle (teaser, announcement, reminder, d
             </div>
           </div>
 
-          <button onClick={() => canProceed && setScreen("dashboard")} style={{ width: "100%", padding: "16px", background: canProceed ? "linear-gradient(135deg, #E85D31, #E8B931)" : "rgba(255,255,255,0.08)", border: "none", borderRadius: 14, color: canProceed ? "#fff" : "rgba(255,255,255,0.3)", fontSize: 16, fontWeight: 600, cursor: canProceed ? "pointer" : "not-allowed", fontFamily: "inherit", transition: "all 0.3s", letterSpacing: "0.3px", boxShadow: canProceed ? "0 8px 32px rgba(232,89,49,0.25)" : "none" }}>
+          <button onClick={() => canProceed && navigateTo("dashboard")} style={{ width: "100%", padding: "16px", background: canProceed ? "linear-gradient(135deg, #E85D31, #E8B931)" : "rgba(255,255,255,0.08)", border: "none", borderRadius: 14, color: canProceed ? "#fff" : "rgba(255,255,255,0.3)", fontSize: 16, fontWeight: 600, cursor: canProceed ? "pointer" : "not-allowed", fontFamily: "inherit", transition: "all 0.3s", letterSpacing: "0.3px", boxShadow: canProceed ? "0 8px 32px rgba(232,89,49,0.25)" : "none" }}>
             Launch Dashboard →
           </button>
         </div>
@@ -285,11 +323,11 @@ Generate 4-5 posts across the event lifecycle (teaser, announcement, reminder, d
       <div style={{ minHeight: "100vh", background: "#0A0A0B", color: "#fff", fontFamily: "'DM Sans', sans-serif" }}>
 
         <nav style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 36px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={goBack}>
             <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #E85D31, #E8B931)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>✈</div>
             <span style={{ fontSize: 18, fontWeight: 700 }}>PostPilot</span>
           </div>
-          <button onClick={() => setScreen("dashboard")} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", padding: "8px 20px", borderRadius: 50, fontSize: 13, cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}>
+          <button onClick={goBack} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.7)", padding: "8px 20px", borderRadius: 50, fontSize: 13, cursor: "pointer", fontFamily: "inherit", fontWeight: 500 }}>
             ← Back to Dashboard
           </button>
         </nav>
@@ -385,7 +423,7 @@ Generate 4-5 posts across the event lifecycle (teaser, announcement, reminder, d
 
       {/* Dashboard Nav */}
       <nav style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 36px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }} onClick={() => navigateTo("landing")}>
           <div style={{ width: 32, height: 32, borderRadius: 8, background: "linear-gradient(135deg, #E85D31, #E8B931)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>✈</div>
           <span style={{ fontSize: 18, fontWeight: 700 }}>PostPilot</span>
           <span style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", marginLeft: 8, fontWeight: 300 }}>/ {orgName}</span>
