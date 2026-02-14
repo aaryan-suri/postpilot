@@ -6,6 +6,8 @@ import Onboarding from "./components/Onboarding/Onboarding";
 import Dashboard from "./components/Dashboard/Dashboard";
 import GenerateScreen from "./components/Generate/GenerateScreen";
 import Profile from "./components/Profile/Profile";
+import ConnectPlatformModal from "./components/shared/ConnectPlatformModal";
+import Toast from "./components/shared/Toast";
 
 const SAMPLE_EVENTS = [
   { id: 1, title: "Spring General Body Meeting", date: "2026-02-18", time: "7:00 PM", location: "Stamp Student Union, Room 2134", description: "First GBM of the semester! Come learn about upcoming events and meet the new e-board.", type: "gbm" },
@@ -32,6 +34,12 @@ export default function PostPilot() {
   const [contentQueue, setContentQueue] = useState([]);
   const [approvedPosts, setApprovedPosts] = useState([]);
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [photos, setPhotos] = useState([]);
+  const [postPhotoAssignments, setPostPhotoAssignments] = useState({});
+  const [connectedPlatforms, setConnectedPlatforms] = useState(["Google Calendar"]); // Demo: calendar always connected
+  const [connectModalPlatform, setConnectModalPlatform] = useState(null);
+  const [showCalendarConnectOnOnboard, setShowCalendarConnectOnOnboard] = useState(false);
+  const [toastMessage, setToastMessage] = useState(null);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -129,6 +137,29 @@ export default function PostPilot() {
     if (isMountedRef.current) setGenerating(false);
   };
 
+  const handlePlatformConnect = (platform) => {
+    setConnectedPlatforms((prev) => (prev.includes(platform) ? prev : [...prev, platform]));
+    setConnectModalPlatform(null);
+  };
+
+  const assignPhoto = (eventId, postIndex, photo) => {
+    setPostPhotoAssignments((prev) => {
+      const eventAssignments = { ...(prev[eventId] || {}) };
+      if (photo) {
+        eventAssignments[postIndex] = photo.id;
+      } else {
+        delete eventAssignments[postIndex];
+      }
+      const next = { ...prev };
+      if (Object.keys(eventAssignments).length > 0) {
+        next[eventId] = eventAssignments;
+      } else {
+        delete next[eventId];
+      }
+      return next;
+    });
+  };
+
   const approvePost = (eventId, postIndex) => {
     const post = generatedPosts[eventId]?.[postIndex];
     if (!post) return;
@@ -137,64 +168,122 @@ export default function PostPilot() {
       const eventTitle = events.find((e) => e.id === eventId)?.title || "";
       setApprovedPosts((prev) => [...prev, { ...post, eventId, eventTitle }]);
       setContentQueue((prev) => [...prev, { ...post, eventId, eventTitle, status: "scheduled" }]);
+      setToastMessage("Post approved and queued!");
     }
   };
 
+  const updatePostCaption = (eventId, postIndex, newCaption) => {
+    setGeneratedPosts((prev) => {
+      const posts = prev[eventId];
+      if (!posts || !posts[postIndex]) return prev;
+      const updated = [...posts];
+      updated[postIndex] = { ...updated[postIndex], caption: newCaption };
+      return { ...prev, [eventId]: updated };
+    });
+  };
+
   if (screen === "landing") {
-    return <Landing onGetStarted={() => navigateTo("onboard")} />;
+    return (
+      <div style={{ animation: "screen-fade 0.35s ease-out" }}>
+        <Landing onGetStarted={() => navigateTo("onboard")} />
+      </div>
+    );
   }
 
   if (screen === "onboard") {
     return (
-      <Onboarding
-        orgName={orgName}
-        setOrgName={setOrgName}
-        orgDesc={orgDesc}
-        setOrgDesc={setOrgDesc}
-        tone={tone}
-        setTone={setTone}
-        platforms={platforms}
-        togglePlatform={togglePlatform}
-        onBack={goBack}
-        onLaunch={() => navigateTo("dashboard")}
-      />
+      <>
+        <Onboarding
+          orgName={orgName}
+          setOrgName={setOrgName}
+          orgDesc={orgDesc}
+          setOrgDesc={setOrgDesc}
+          tone={tone}
+          setTone={setTone}
+          platforms={platforms}
+          togglePlatform={togglePlatform}
+          onBack={goBack}
+          onLaunch={() => {
+            setShowCalendarConnectOnOnboard(true);
+          }}
+        />
+        {showCalendarConnectOnOnboard && (
+          <ConnectPlatformModal
+            isOpen
+            platform="Google Calendar"
+            onClose={() => {
+              setShowCalendarConnectOnOnboard(false);
+              navigateTo("dashboard");
+            }}
+            onSuccess={() => setShowCalendarConnectOnOnboard(false)}
+          />
+        )}
+      </>
     );
   }
 
   if (screen === "profile") {
     return (
-      <Profile
-        orgName={orgName}
-        orgDesc={orgDesc}
-        tone={tone}
-        platforms={platforms}
-        events={events}
-        approvedPosts={approvedPosts}
-        generatedPosts={generatedPosts}
-        onBack={goBack}
-      />
+      <>
+        <Profile
+          orgName={orgName}
+          orgDesc={orgDesc}
+          tone={tone}
+          platforms={platforms}
+          events={events}
+          approvedPosts={approvedPosts}
+          generatedPosts={generatedPosts}
+          onBack={goBack}
+          connectedPlatforms={connectedPlatforms}
+          onConnectClick={setConnectModalPlatform}
+        />
+        {connectModalPlatform && (
+          <ConnectPlatformModal
+            isOpen
+            platform={connectModalPlatform}
+            onClose={() => setConnectModalPlatform(null)}
+            onSuccess={handlePlatformConnect}
+          />
+        )}
+      </>
     );
   }
 
   if (screen === "generate") {
     const posts = generatedPosts[selectedEvent?.id] || [];
+    const eventPhotos = photos.filter(
+      (p) => p.tagEventId === selectedEvent?.id || p.tag === selectedEvent?.title
+    );
     return (
-      <GenerateScreen
-        selectedEvent={selectedEvent}
-        posts={posts}
-        generating={generating}
-        generationProgress={generationProgress}
-        tone={tone}
-        orgName={orgName}
-        approvedPosts={approvedPosts}
-        onBack={goBack}
-        onApprovePost={approvePost}
-        onEditPost={() => {}}
-      />
+      <>
+        <div style={{ animation: "screen-fade 0.35s ease-out" }}>
+          <GenerateScreen
+            selectedEvent={selectedEvent}
+            posts={posts}
+            generating={generating}
+            generationProgress={generationProgress}
+            tone={tone}
+            orgName={orgName}
+            approvedPosts={approvedPosts}
+            onBack={goBack}
+            onApprovePost={approvePost}
+            onEditPost={(post, index) => {}}
+            onUpdateCaption={(postIndex, newCaption) =>
+              updatePostCaption(selectedEvent?.id, postIndex, newCaption)
+            }
+            onRegenerate={() => selectedEvent && generateContent(selectedEvent)}
+            eventPhotos={eventPhotos}
+            postPhotoAssignments={postPhotoAssignments}
+            onAssignPhoto={assignPhoto}
+          />
+        </div>
+        <Toast message={toastMessage} visible={!!toastMessage} onHide={() => setToastMessage(null)} />
+      </>
     );
   }
 
   return (
+    <>
     <Dashboard
       orgName={orgName}
       events={events}
@@ -211,6 +300,10 @@ export default function PostPilot() {
       newEvent={newEvent}
       setNewEvent={setNewEvent}
       addEvent={addEvent}
+      photos={photos}
+      onPhotosChange={setPhotos}
     />
+    <Toast message={toastMessage} visible={!!toastMessage} onHide={() => setToastMessage(null)} />
+    </>
   );
 }

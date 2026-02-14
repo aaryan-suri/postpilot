@@ -15,6 +15,8 @@ export default function Profile({
   approvedPosts,
   generatedPosts,
   onBack,
+  connectedPlatforms = [],
+  onConnectClick,
 }) {
   const totalGenerated = Object.values(generatedPosts || {}).flat().length;
 
@@ -191,7 +193,11 @@ export default function Profile({
           </div>
         </div>
 
-        <ConnectedAccounts platforms={platforms} />
+        <ConnectedAccounts
+          platforms={platforms}
+          connectedPlatforms={connectedPlatforms}
+          onConnectClick={onConnectClick}
+        />
         <PlanUsage totalGenerated={totalGenerated} />
         <TeamMembers orgName={orgName} />
       </div>

@@ -15,6 +15,11 @@ export default function GenerateScreen({
   onBack,
   onApprovePost,
   onEditPost,
+  onUpdateCaption,
+  onRegenerate,
+  eventPhotos = [],
+  postPhotoAssignments = {},
+  onAssignPhoto,
 }) {
   return (
     <div style={STYLES.page}>
@@ -61,6 +66,25 @@ export default function GenerateScreen({
           <div style={STYLES.sub}>
             📅 {selectedEvent?.date} · ⏰ {selectedEvent?.time} · 📍 {selectedEvent?.location}
           </div>
+          {!generating && onRegenerate && (
+            <button
+              onClick={onRegenerate}
+              style={{
+                marginTop: 16,
+                padding: "8px 20px",
+                borderRadius: 50,
+                border: "1px solid rgba(255,255,255,0.2)",
+                background: "rgba(255,255,255,0.06)",
+                color: "rgba(255,255,255,0.7)",
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              🔄 Regenerate content
+            </button>
+          )}
         </div>
 
         {generating ? (
@@ -75,13 +99,20 @@ export default function GenerateScreen({
               const isApproved = approvedPosts.some(
                 (a) => a.eventId === selectedEvent?.id && a.caption === post.caption
               );
+              const assignedPhotoId = postPhotoAssignments[selectedEvent?.id]?.[i];
+              const selectedPhoto = eventPhotos.find((p) => p.id === assignedPhotoId);
               return (
                 <PostCard
                   key={i}
                   post={post}
+                  postIndex={i}
                   isApproved={isApproved}
                   onApprove={() => onApprovePost(selectedEvent?.id, i)}
                   onEdit={() => onEditPost?.(post, i)}
+                  onUpdateCaption={(newCaption) => onUpdateCaption?.(i, newCaption)}
+                  selectedPhoto={selectedPhoto}
+                  eventPhotos={eventPhotos}
+                  onSelectPhoto={(photo) => onAssignPhoto?.(selectedEvent?.id, i, photo)}
                 />
               );
             })}

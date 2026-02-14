@@ -10,6 +10,35 @@
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { background: #0A0A0B; }
+      @keyframes connect-pulse {
+        0%, 100% { opacity: 0.4; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.2); }
+      }
+      @keyframes connect-shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(400%); }
+      }
+      @keyframes toast-in {
+        from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+        to { opacity: 1; transform: translateX(-50%) translateY(0); }
+      }
+      @keyframes screen-fade {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @media (max-width: 768px) {
+        .dashboard-layout { flex-direction: column-reverse !important; }
+        .sidebar-nav {
+          width: 100% !important;
+          flex-direction: row !important;
+          flex-wrap: wrap !important;
+          border-right: none !important;
+          border-top: 1px solid rgba(255,255,255,0.06) !important;
+          padding: 12px 8px !important;
+          justify-content: space-around !important;
+        }
+        .sidebar-nav button { margin-bottom: 0 !important; flex: 1; min-width: 60px; }
+      }
     </style>
   </head>
   <body>
