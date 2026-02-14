@@ -19,6 +19,8 @@ const EVENT_TYPES = [
 
 export default function Dashboard({
   orgName,
+  tone,
+  platforms,
   events,
   generatedPosts,
   approvedPosts,

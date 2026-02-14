@@ -286,6 +286,8 @@ export default function PostPilot() {
     <>
     <Dashboard
       orgName={orgName}
+      tone={tone}
+      platforms={platforms}
       events={events}
       generatedPosts={generatedPosts}
       approvedPosts={approvedPosts}
