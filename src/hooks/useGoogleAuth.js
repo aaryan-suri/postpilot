@@ -71,11 +71,21 @@ export function useGoogleAuth(onTokensReceived) {
   const connect = async () => {
     try {
       const res = await fetch("/api/auth/url");
-      const data = await res.json();
-      if (data?.url) window.location.href = data.url;
-      else console.error("No auth URL returned");
+      const data = await res.json().catch(() => ({}));
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+      if (res.status === 500) {
+        throw new Error("Google OAuth not configured. Add GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI to .env and run with npx vercel dev");
+      }
+      if (!res.ok) {
+        throw new Error(`API error (${res.status}). Run with npx vercel dev and open http://localhost:3000`);
+      }
+      throw new Error("No auth URL returned. Check server logs.");
     } catch (err) {
       console.error("Failed to get auth URL:", err);
+      throw err;
     }
   };
 

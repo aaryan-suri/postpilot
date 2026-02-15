@@ -20,8 +20,9 @@ export default function Onboarding({
   const [calendars, setCalendars] = useState([]);
   const [calendarsLoading, setCalendarsLoading] = useState(false);
   const [showCalendarPicker, setShowCalendarPicker] = useState(false);
+  const [connectError, setConnectError] = useState(null);
 
-  const hasGoogleAuth = !!googleAuth?.connect;
+  const hasGoogleAuth = !!googleAuth && typeof googleAuth?.connect === "function";
   const canProceed =
     orgName?.trim() &&
     orgDesc?.trim() &&
@@ -167,7 +168,14 @@ export default function Onboarding({
                   </div>
                 </div>
                 <button
-                  onClick={connect}
+                  onClick={async () => {
+                    setConnectError(null);
+                    try {
+                      if (connect) await connect();
+                    } catch (err) {
+                      setConnectError(err?.message || "Connect failed");
+                    }
+                  }}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -204,6 +212,11 @@ export default function Onboarding({
                   Connect Google Calendar
                 </button>
               </div>
+              {connectError && (
+                <div style={{ color: "#E85D31", fontSize: 13, marginTop: 4 }}>
+                  {connectError}
+                </div>
+              )}
             </>
           ) : (
             <>
