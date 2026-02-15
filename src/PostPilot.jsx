@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { generateSmartContent } from "./utils/contentEngine";
+import { useGoogleAuth } from "./hooks/useGoogleAuth";
 
 import Landing from "./components/Landing/Landing";
 import Onboarding from "./components/Onboarding/Onboarding";
@@ -18,13 +19,21 @@ const SAMPLE_EVENTS = [
 ];
 
 export default function PostPilot() {
+  const [pendingAuthRedirect, setPendingAuthRedirect] = useState(false);
+  const handleTokensReceived = useCallback(() => setPendingAuthRedirect(true), []);
+  const googleAuth = useGoogleAuth(handleTokensReceived);
+  const { isConnected: googleCalendarConnected, calendarId, fetchWithAuth } = googleAuth;
+
   const [screen, setScreen] = useState("landing");
   const [screenHistory, setScreenHistory] = useState(["landing"]);
   const [orgName, setOrgName] = useState("");
   const [orgDesc, setOrgDesc] = useState("");
   const [tone, setTone] = useState("");
   const [platforms, setPlatforms] = useState([]);
-  const [events, setEvents] = useState(SAMPLE_EVENTS);
+  const [events, setEvents] = useState([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [eventsError, setEventsError] = useState(null);
+  const [eventsLastSynced, setEventsLastSynced] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [generatedPosts, setGeneratedPosts] = useState({});
   const [generating, setGenerating] = useState(false);
@@ -36,15 +45,95 @@ export default function PostPilot() {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [photos, setPhotos] = useState([]);
   const [postPhotoAssignments, setPostPhotoAssignments] = useState({});
-  const [connectedPlatforms, setConnectedPlatforms] = useState(["Google Calendar"]); // Demo: calendar always connected
+  const [connectedPlatforms, setConnectedPlatforms] = useState([]);
   const [connectModalPlatform, setConnectModalPlatform] = useState(null);
-  const [showCalendarConnectOnOnboard, setShowCalendarConnectOnOnboard] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   const isMountedRef = useRef(true);
+  const fetchIdRef = useRef(0);
 
   useEffect(() => {
     return () => { isMountedRef.current = false; };
   }, []);
+
+  // When returning from OAuth, go to onboarding to pick calendar
+  useEffect(() => {
+    if (pendingAuthRedirect && screen === "landing") {
+      setPendingAuthRedirect(false);
+      setScreenHistory((prev) => [...prev, "onboard"]);
+      setScreen("onboard");
+    }
+  }, [pendingAuthRedirect, screen]);
+
+  // Fetch events when dashboard loads with Google Calendar connected
+  const fetchEvents = useCallback(async () => {
+    if (!googleCalendarConnected || !calendarId || !fetchWithAuth) return;
+    const id = ++fetchIdRef.current;
+    setEventsLoading(true);
+    setEventsError(null);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const hardTimeoutId = setTimeout(() => {
+      if (isMountedRef.current && id === fetchIdRef.current) {
+        setEventsLoading(false);
+        setEventsError("Request timed out. The API may not be running — use `npx vercel dev` and open http://localhost:3000");
+      }
+    }, 20000);
+
+    try {
+      const res = await fetchWithAuth(
+        `/api/events?calendarId=${encodeURIComponent(calendarId)}`,
+        { signal: controller.signal }
+      );
+      clearTimeout(timeoutId);
+      clearTimeout(hardTimeoutId);
+      let data;
+      try {
+        data = await res.json();
+      } catch (parseErr) {
+        if (isMountedRef.current && id === fetchIdRef.current) {
+          setEventsError("Could not load calendar. Make sure you're running with `vercel dev` so API routes work.");
+          setEvents([]);
+        }
+        return;
+      }
+      if (res.ok && data?.events) {
+        if (isMountedRef.current && id === fetchIdRef.current) {
+          setEvents(data.events);
+          setEventsLastSynced(new Date());
+        }
+      } else if (res.status === 401) {
+        if (isMountedRef.current && id === fetchIdRef.current) setEvents([]);
+      } else {
+        if (isMountedRef.current && id === fetchIdRef.current) {
+          setEventsError(data?.error || "Failed to load events");
+          setEvents([]);
+        }
+      }
+    } catch (err) {
+      clearTimeout(timeoutId);
+      clearTimeout(hardTimeoutId);
+      if (err?.name === "AbortError") {
+        if (isMountedRef.current && id === fetchIdRef.current) setEventsError("Request timed out. Try again.");
+      } else {
+        if (isMountedRef.current && id === fetchIdRef.current) {
+          setEventsError("Could not load calendar. Run with `vercel dev` (not `npm run dev`) for API routes.");
+          setEvents([]);
+        }
+      }
+    } finally {
+      clearTimeout(hardTimeoutId);
+      if (isMountedRef.current && id === fetchIdRef.current) setEventsLoading(false);
+    }
+  }, [googleCalendarConnected, calendarId, fetchWithAuth]);
+
+  useEffect(() => {
+    if (screen !== "dashboard") return;
+    if (googleCalendarConnected && calendarId) {
+      fetchEvents();
+    } else {
+      setEvents(SAMPLE_EVENTS);
+    }
+  }, [screen, googleCalendarConnected, calendarId, fetchEvents]);
 
   const navigateTo = (s) => {
     setScreenHistory((prev) => [...prev, s]);
@@ -69,6 +158,12 @@ export default function PostPilot() {
       setNewEvent({ title: "", date: "", time: "", location: "", description: "", type: "gbm" });
       setShowAddEvent(false);
     }
+  };
+
+  const updateEventType = (eventId, newType) => {
+    setEvents((prev) =>
+      prev.map((e) => (e.id === eventId ? { ...e, type: newType } : e))
+    );
   };
 
   const generateContent = async (event) => {
@@ -192,33 +287,19 @@ export default function PostPilot() {
 
   if (screen === "onboard") {
     return (
-      <>
-        <Onboarding
-          orgName={orgName}
-          setOrgName={setOrgName}
-          orgDesc={orgDesc}
-          setOrgDesc={setOrgDesc}
-          tone={tone}
-          setTone={setTone}
-          platforms={platforms}
-          togglePlatform={togglePlatform}
-          onBack={goBack}
-          onLaunch={() => {
-            setShowCalendarConnectOnOnboard(true);
-          }}
-        />
-        {showCalendarConnectOnOnboard && (
-          <ConnectPlatformModal
-            isOpen
-            platform="Google Calendar"
-            onClose={() => {
-              setShowCalendarConnectOnOnboard(false);
-              navigateTo("dashboard");
-            }}
-            onSuccess={() => setShowCalendarConnectOnOnboard(false)}
-          />
-        )}
-      </>
+      <Onboarding
+        orgName={orgName}
+        setOrgName={setOrgName}
+        orgDesc={orgDesc}
+        setOrgDesc={setOrgDesc}
+        tone={tone}
+        setTone={setTone}
+        platforms={platforms}
+        togglePlatform={togglePlatform}
+        onBack={goBack}
+        onLaunch={() => navigateTo("dashboard")}
+        googleAuth={googleAuth}
+      />
     );
   }
 
@@ -234,8 +315,13 @@ export default function PostPilot() {
           approvedPosts={approvedPosts}
           generatedPosts={generatedPosts}
           onBack={goBack}
-          connectedPlatforms={connectedPlatforms}
+          connectedPlatforms={
+            googleCalendarConnected
+              ? ["Google Calendar", ...connectedPlatforms.filter((p) => p !== "Google Calendar")]
+              : connectedPlatforms
+          }
           onConnectClick={setConnectModalPlatform}
+          googleAuth={googleAuth}
         />
         {connectModalPlatform && (
           <ConnectPlatformModal
@@ -304,6 +390,14 @@ export default function PostPilot() {
       addEvent={addEvent}
       photos={photos}
       onPhotosChange={setPhotos}
+      googleCalendarConnected={googleCalendarConnected}
+      onConnectCalendar={googleAuth.connect}
+      eventsLoading={eventsLoading}
+      eventsError={eventsError}
+      eventsLastSynced={eventsLastSynced}
+      onRefreshEvents={fetchEvents}
+      isDemoMode={!googleCalendarConnected}
+      onEventTypeChange={updateEventType}
     />
     <Toast message={toastMessage} visible={!!toastMessage} onHide={() => setToastMessage(null)} />
     </>

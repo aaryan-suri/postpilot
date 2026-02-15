@@ -17,6 +17,15 @@ const EVENT_TYPES = [
   { value: "networking", label: "Networking / Mixer" },
 ];
 
+function formatTimeAgo(date) {
+  if (!date) return "";
+  const sec = Math.floor((Date.now() - date) / 1000);
+  if (sec < 60) return "just now";
+  if (sec < 3600) return `${Math.floor(sec / 60)} min ago`;
+  if (sec < 86400) return `${Math.floor(sec / 3600)} hr ago`;
+  return `${Math.floor(sec / 86400)} days ago`;
+}
+
 export default function Dashboard({
   orgName,
   tone,
@@ -37,6 +46,14 @@ export default function Dashboard({
   addEvent,
   photos = [],
   onPhotosChange,
+  googleCalendarConnected,
+  onConnectCalendar,
+  eventsLoading,
+  eventsError,
+  eventsLastSynced,
+  onRefreshEvents,
+  isDemoMode,
+  onEventTypeChange,
 }) {
   const stats = [
     { label: "Upcoming Events", value: events.length, icon: "📅" },
@@ -121,28 +138,211 @@ export default function Dashboard({
                   justifyContent: "space-between",
                   alignItems: "center",
                   marginBottom: 24,
+                  flexWrap: "wrap",
+                  gap: 12,
                 }}
               >
-                <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.5px" }}>
-                  Upcoming Events
-                </h2>
-                <button
-                  onClick={() => setShowAddEvent(true)}
+                <div>
+                  <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.5px" }}>
+                    Upcoming Events
+                  </h2>
+                  {googleCalendarConnected && eventsLastSynced && (
+                    <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", marginTop: 4 }}>
+                      Last synced: {formatTimeAgo(eventsLastSynced)}
+                    </div>
+                  )}
+                  {isDemoMode && (
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: "rgba(232,185,49,0.9)",
+                        marginTop: 4,
+                        fontWeight: 500,
+                      }}
+                    >
+                      Demo Mode — using sample events
+                    </div>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  {googleCalendarConnected && onRefreshEvents && (
+                    <button
+                      onClick={onRefreshEvents}
+                      disabled={eventsLoading}
+                      style={{
+                        background: "rgba(255,255,255,0.06)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        color: "rgba(255,255,255,0.7)",
+                        padding: "8px 16px",
+                        borderRadius: 50,
+                        fontSize: 12,
+                        fontWeight: 500,
+                        cursor: eventsLoading ? "wait" : "pointer",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      {eventsLoading ? "Syncing..." : "Refresh Events"}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowAddEvent(true)}
+                    style={{
+                      background: STYLES.grad,
+                      border: "none",
+                      color: "#fff",
+                      padding: "10px 22px",
+                      borderRadius: 50,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    + Add Event
+                  </button>
+                </div>
+              </div>
+
+              {!googleCalendarConnected && onConnectCalendar && (
+                <div
                   style={{
-                    background: STYLES.grad,
-                    border: "none",
-                    color: "#fff",
-                    padding: "10px 22px",
-                    borderRadius: 50,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    fontFamily: "inherit",
+                    ...STYLES.card,
+                    padding: 28,
+                    marginBottom: 24,
+                    textAlign: "center",
                   }}
                 >
-                  + Add Event
-                </button>
-              </div>
+                  <div style={{ fontSize: 40, marginBottom: 16 }}>📅</div>
+                  <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>
+                    Connect your Google Calendar
+                  </h3>
+                  <p
+                    style={{
+                      fontSize: 14,
+                      color: "rgba(255,255,255,0.5)",
+                      marginBottom: 20,
+                      maxWidth: 400,
+                      margin: "0 auto 20px",
+                    }}
+                  >
+                    Link your calendar to automatically import upcoming events.
+                  </p>
+                  <button
+                    onClick={onConnectCalendar}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 10,
+                      background: "#fff",
+                      color: "#333",
+                      border: "1px solid rgba(0,0,0,0.1)",
+                      padding: "12px 24px",
+                      borderRadius: 8,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 18 18">
+                      <path
+                        fill="#4285F4"
+                        d="M9 3.48c1.69 0 2.83.73 3.48 1.34l2.54-2.48C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.96l2.91 2.26C4.6 5.05 6.62 3.48 9 3.48z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M17.64 9.23c0-.74-.06-1.28-.19-1.84H9v3.34h4.96c-.1.83-.64 2.08-1.84 2.92l2.84 2.2c1.7-1.57 2.68-3.88 2.68-6.62z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M3.88 10.78A5.54 5.54 0 0 1 3.58 9c0-.62.11-1.22.29-1.78L.96 4.96A9.008 9.008 0 0 0 0 9c0 1.45.35 2.82.96 4.04l2.92-2.26z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.84-2.2c-.76.53-1.78.9-3.12.9-2.38 0-4.4-1.57-5.12-3.74L.97 13.04C2.45 15.98 5.48 18 9 18z"
+                      />
+                    </svg>
+                    Connect Google Calendar →
+                  </button>
+                </div>
+              )}
+
+              {googleCalendarConnected && eventsLoading && events.length === 0 && !eventsError && (
+                <div
+                  style={{
+                    ...STYLES.card,
+                    padding: 40,
+                    marginBottom: 24,
+                    textAlign: "center",
+                    color: "rgba(255,255,255,0.5)",
+                  }}
+                >
+                  Loading events from your calendar...
+                </div>
+              )}
+
+              {googleCalendarConnected && eventsError && (
+                <div
+                  style={{
+                    ...STYLES.card,
+                    padding: 28,
+                    marginBottom: 24,
+                    textAlign: "center",
+                    border: "1px solid rgba(232,89,49,0.3)",
+                    background: "rgba(232,89,49,0.08)",
+                  }}
+                >
+                  <div style={{ fontSize: 20, marginBottom: 12 }}>⚠️</div>
+                  <p style={{ color: "rgba(255,255,255,0.9)", marginBottom: 16, fontSize: 14 }}>
+                    {eventsError}
+                  </p>
+                  {onRefreshEvents && (
+                    <button
+                      onClick={onRefreshEvents}
+                      style={{
+                        background: STYLES.grad,
+                        border: "none",
+                        color: "#fff",
+                        padding: "10px 20px",
+                        borderRadius: 50,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      Try again
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {googleCalendarConnected && !eventsLoading && !eventsError && events.length === 0 && (
+                <div
+                  style={{
+                    ...STYLES.card,
+                    padding: 40,
+                    marginBottom: 24,
+                    textAlign: "center",
+                  }}
+                >
+                  <div style={{ fontSize: 36, marginBottom: 16 }}>📅</div>
+                  <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>
+                    No upcoming events
+                  </h3>
+                  <p
+                    style={{
+                      fontSize: 14,
+                      color: "rgba(255,255,255,0.5)",
+                      maxWidth: 400,
+                      margin: "0 auto",
+                    }}
+                  >
+                    Your calendar is connected but there are no events in the next 60 days. Add
+                    events to your Google Calendar and they&apos;ll show up here automatically.
+                  </p>
+                </div>
+              )}
 
               {showAddEvent && (
                 <div style={{ ...STYLES.card, padding: 28, marginBottom: 24 }}>
@@ -254,6 +454,8 @@ export default function Dashboard({
                         approvedCount={approvedCount}
                         totalPosts={hasContent ? generatedPosts[event.id].length : 0}
                         onGenerate={onGenerateContent}
+                        onEventTypeChange={onEventTypeChange}
+                        eventTypes={EVENT_TYPES}
                       />
                     );
                   })}

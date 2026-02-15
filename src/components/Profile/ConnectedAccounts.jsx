@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { STYLES } from "../../utils/styles";
 
 const ACCOUNTS = [
@@ -9,9 +9,42 @@ const ACCOUNTS = [
   { name: "Twitter/X", icon: "🐦", statusKey: "twitter" },
 ];
 
-export default function ConnectedAccounts({ platforms, connectedPlatforms = [], onConnectClick }) {
+export default function ConnectedAccounts({
+  platforms,
+  connectedPlatforms = [],
+  onConnectClick,
+  googleAuth,
+}) {
+  const [calendarName, setCalendarName] = useState(null);
+  const isGoogleConnected = googleAuth?.isConnected;
+  const calendarId = googleAuth?.calendarId;
+
+  useEffect(() => {
+    if (isGoogleConnected && calendarId && googleAuth?.fetchWithAuth) {
+      googleAuth.fetchWithAuth("/api/calendars")
+        .then((r) => r.json())
+        .then((d) => {
+          const cal = d?.calendars?.find((c) => c.id === calendarId);
+          if (cal) setCalendarName(cal.name);
+        })
+        .catch(() => {});
+    } else {
+      setCalendarName(null);
+    }
+  }, [isGoogleConnected, calendarId, googleAuth?.fetchWithAuth]);
+
   const getStatus = (key) => {
-    if (key === "calendar") return { status: "connected", detail: "Demo mode", canClick: false };
+    if (key === "calendar") {
+      if (isGoogleConnected) {
+        return {
+          status: "connected",
+          detail: calendarName || "Connected",
+          canClick: true,
+          canDisconnect: true,
+        };
+      }
+      return { status: "ready", detail: "Connect to sync events", canClick: true, platformName: "Google Calendar" };
+    }
     const platformName = key === "instagram" ? "Instagram" : key === "tiktok" ? "TikTok" : key === "twitter" ? "Twitter/X" : "LinkedIn";
     const selected = platforms?.includes(platformName);
     const connected = connectedPlatforms?.includes(platformName);
@@ -35,33 +68,76 @@ export default function ConnectedAccounts({ platforms, connectedPlatforms = [], 
         Connected Accounts
       </h3>
       {ACCOUNTS.map((acct, i) => {
-        const { status, detail, canClick, platformName } = getStatus(acct.statusKey);
+        const { status, detail, canClick, platformName, canDisconnect } = getStatus(acct.statusKey);
+        const isCalendar = acct.statusKey === "calendar";
         const badge = (
-          <div
-            style={{
-              padding: "5px 14px",
-              borderRadius: 50,
-              fontSize: 11,
-              fontWeight: 600,
-              background:
-                status === "connected"
-                  ? "rgba(46,204,113,0.12)"
-                  : status === "ready"
-                  ? "rgba(232,185,49,0.12)"
-                  : "rgba(255,255,255,0.05)",
-              color:
-                status === "connected"
-                  ? "#2ECC71"
-                  : status === "ready"
-                  ? "#E8B931"
-                  : "rgba(255,255,255,0.3)",
-              cursor: canClick ? "pointer" : "default",
-            }}
-            onClick={canClick ? () => onConnectClick?.(platformName) : undefined}
-            onMouseOver={(e) => canClick && (e.currentTarget.style.background = "rgba(232,185,49,0.2)")}
-            onMouseOut={(e) => canClick && (e.currentTarget.style.background = "rgba(232,185,49,0.12)")}
-          >
-            {status === "connected" ? "✓ Connected" : status === "ready" ? "Connect →" : "—"}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {status === "connected" && (
+              <span
+                style={{
+                  padding: "5px 14px",
+                  borderRadius: 50,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  background: "rgba(46,204,113,0.12)",
+                  color: "#2ECC71",
+                }}
+              >
+                ✓ Connected
+              </span>
+            )}
+            {status === "ready" && (
+              <div
+                style={{
+                  padding: "5px 14px",
+                  borderRadius: 50,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  background: "rgba(232,185,49,0.12)",
+                  color: "#E8B931",
+                  cursor: "pointer",
+                }}
+                onClick={() =>
+                  isCalendar && googleAuth?.connect
+                    ? googleAuth.connect()
+                    : onConnectClick?.(platformName)
+                }
+              >
+                Connect →
+              </div>
+            )}
+            {status === "none" && (
+              <span
+                style={{
+                  padding: "5px 14px",
+                  borderRadius: 50,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  background: "rgba(255,255,255,0.05)",
+                  color: "rgba(255,255,255,0.3)",
+                }}
+              >
+                —
+              </span>
+            )}
+            {canDisconnect && isCalendar && googleAuth?.disconnect && (
+              <button
+                onClick={googleAuth.disconnect}
+                style={{
+                  padding: "5px 12px",
+                  borderRadius: 50,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  color: "rgba(255,255,255,0.6)",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                Disconnect
+              </button>
+            )}
           </div>
         );
         return (

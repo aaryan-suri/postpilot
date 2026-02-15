@@ -197,6 +197,7 @@ export default function Profile({
           platforms={platforms}
           connectedPlatforms={connectedPlatforms}
           onConnectClick={onConnectClick}
+          googleAuth={googleAuth}
         />
         <PlanUsage totalGenerated={totalGenerated} />
         <TeamMembers orgName={orgName} />

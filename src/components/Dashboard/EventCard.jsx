@@ -1,7 +1,15 @@
 import React from "react";
 import { STYLES } from "../../utils/styles";
 
-export default function EventCard({ event, hasContent, approvedCount, totalPosts, onGenerate }) {
+export default function EventCard({
+  event,
+  hasContent,
+  approvedCount,
+  totalPosts,
+  onGenerate,
+  onEventTypeChange,
+  eventTypes = [],
+}) {
   return (
     <div
       style={{
@@ -40,8 +48,31 @@ export default function EventCard({ event, hasContent, approvedCount, totalPosts
             </span>
           )}
         </div>
-        <div style={STYLES.sub}>
-          📅 {event.date} · ⏰ {event.time} · 📍 {event.location}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span style={STYLES.sub}>📅 {event.date} · ⏰ {event.time} · 📍 {event.location}</span>
+          {eventTypes.length > 0 && onEventTypeChange && (
+            <select
+              value={event.type || "gbm"}
+              onChange={(e) => {
+                e.stopPropagation();
+                onEventTypeChange(event.id, e.target.value);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                ...STYLES.input,
+                padding: "4px 10px",
+                fontSize: 11,
+                width: "auto",
+                minWidth: 120,
+              }}
+            >
+              {eventTypes.map((et) => (
+                <option key={et.value} value={et.value}>
+                  {et.label}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
       </div>
       <button

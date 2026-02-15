@@ -25,10 +25,15 @@ cp .env.example .env
 # Edit .env and add your ANTHROPIC_API_KEY
 
 # 4. Run locally
-npm run dev
-```
 
-The app will be running at `http://localhost:5173`
+# For full app (incl. API routes & Google OAuth):
+npx vercel dev
+# Open http://localhost:3000 (not 5173!)
+
+# Or frontend-only (no API routes):
+npm run dev
+# App runs at http://localhost:5173
+```
 
 ## 🌐 Deploy to Vercel (Free)
 
@@ -144,6 +149,9 @@ git push origin your-name/what-youre-working-on
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `ANTHROPIC_API_KEY` | Your Anthropic API key for Claude | Yes |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID | For Calendar sync |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | For Calendar sync |
+| `GOOGLE_REDIRECT_URI` | OAuth callback URL (e.g. `http://localhost:3000/api/auth/callback` for local) | For Calendar sync |
 
 ## 📄 License
 
