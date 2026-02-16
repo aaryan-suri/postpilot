@@ -113,6 +113,8 @@ export default function GenerateScreen({
                   selectedPhoto={selectedPhoto}
                   eventPhotos={eventPhotos}
                   onSelectPhoto={(photo) => onAssignPhoto?.(selectedEvent?.id, i, photo)}
+                  event={selectedEvent}
+                  orgName={orgName}
                 />
               );
             })}

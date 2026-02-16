@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { STYLES } from "../../utils/styles";
+import { getEventImage } from "../../utils/imageGenerator";
 
 export default function EventCard({
   event,
@@ -9,7 +10,21 @@ export default function EventCard({
   onGenerate,
   onEventTypeChange,
   eventTypes = [],
+  orgName = "",
 }) {
+  const [eventImage, setEventImage] = useState(null);
+  
+  useEffect(() => {
+    // Generate image when component mounts or event changes
+    try {
+      const imageUrl = getEventImage(event, 'announcement', orgName);
+      setEventImage(imageUrl);
+    } catch (e) {
+      console.warn('Failed to generate event image:', e);
+      setEventImage(null);
+    }
+  }, [event.id, event.date, event.time, event.title, event.location, event.type, orgName]);
+  
   return (
     <div
       style={{
@@ -18,18 +33,35 @@ export default function EventCard({
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
+        gap: 20,
         transition: "all 0.3s",
         cursor: "pointer",
       }}
       onMouseOver={(e) => {
         e.currentTarget.style.borderColor = "rgba(232,89,49,0.2)";
         e.currentTarget.style.background = "rgba(255,255,255,0.05)";
+        e.currentTarget.style.transform = "translateY(-2px)";
       }}
       onMouseOut={(e) => {
         e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)";
         e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+        e.currentTarget.style.transform = "translateY(0)";
       }}
     >
+      {eventImage && (
+        <img
+          src={eventImage}
+          alt={event.title}
+          style={{
+            width: 100,
+            height: 100,
+            objectFit: "cover",
+            borderRadius: 12,
+            flexShrink: 0,
+            border: "1px solid rgba(255,255,255,0.1)",
+          }}
+        />
+      )}
       <div style={{ flex: 1 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
           <span style={{ fontWeight: 600, fontSize: 15 }}>{event.title}</span>

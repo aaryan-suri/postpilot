@@ -459,6 +459,7 @@ export default function Dashboard({
                         onGenerate={onGenerateContent}
                         onEventTypeChange={onEventTypeChange}
                         eventTypes={EVENT_TYPES}
+                        orgName={orgName}
                       />
                     );
                   })}
