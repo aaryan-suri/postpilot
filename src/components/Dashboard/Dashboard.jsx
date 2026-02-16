@@ -220,12 +220,15 @@ export default function Dashboard({
                     style={{
                       fontSize: 14,
                       color: "rgba(255,255,255,0.5)",
-                      marginBottom: 20,
+                      marginBottom: 8,
                       maxWidth: 400,
-                      margin: "0 auto 20px",
+                      margin: "0 auto 8px",
                     }}
                   >
                     Link your calendar to automatically import upcoming events.
+                  </p>
+                  <p style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", marginBottom: 20, maxWidth: 400, margin: "0 auto 20px" }}>
+                    During development, only approved test users can connect. You can use demo events until then.
                   </p>
                   <button
                     onClick={onConnectCalendar}

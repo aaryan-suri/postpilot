@@ -375,25 +375,53 @@ export default function Onboarding({
           )}
         </div>
 
-        <button
-          onClick={() => canProceed && onLaunch()}
-          disabled={!canProceed}
-          style={{
-            background: canProceed ? STYLES.grad : "rgba(255,255,255,0.08)",
-            border: "none",
-            width: "100%",
-            padding: 16,
-            borderRadius: 14,
-            color: canProceed ? "#fff" : "rgba(255,255,255,0.3)",
-            fontSize: 16,
-            fontWeight: 600,
-            cursor: canProceed ? "pointer" : "not-allowed",
-            fontFamily: "inherit",
-            boxShadow: canProceed ? "0 8px 32px rgba(232,89,49,0.25)" : "none",
-          }}
-        >
-          Launch Dashboard →
-        </button>
+        {hasGoogleAuth && !(isConnected && calendarId) && (
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.45)", marginBottom: 12, textAlign: "center" }}>
+            Can&apos;t connect Google right now? Use demo events and connect later from the dashboard.
+          </p>
+        )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <button
+            onClick={() => canProceed && onLaunch()}
+            disabled={!canProceed}
+            style={{
+              background: canProceed ? STYLES.grad : "rgba(255,255,255,0.08)",
+              border: "none",
+              width: "100%",
+              padding: 16,
+              borderRadius: 14,
+              color: canProceed ? "#fff" : "rgba(255,255,255,0.3)",
+              fontSize: 16,
+              fontWeight: 600,
+              cursor: canProceed ? "pointer" : "not-allowed",
+              fontFamily: "inherit",
+              boxShadow: canProceed ? "0 8px 32px rgba(232,89,49,0.25)" : "none",
+            }}
+          >
+            Launch Dashboard →
+          </button>
+          {hasGoogleAuth && !(isConnected && calendarId) && orgName?.trim() && orgDesc?.trim() && tone && platforms?.length > 0 && (
+            <button
+              type="button"
+              onClick={onLaunch}
+              style={{
+                background: "transparent",
+                border: "1px solid rgba(255,255,255,0.25)",
+                width: "100%",
+                padding: 14,
+                borderRadius: 14,
+                color: "rgba(255,255,255,0.7)",
+                fontSize: 14,
+                fontWeight: 500,
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              Continue with demo events
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
