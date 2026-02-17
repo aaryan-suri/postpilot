@@ -66,12 +66,16 @@ export function useFacebookAuth(onTokensReceived) {
     }
   };
 
-  const disconnect = () => {
+  const disconnect = useCallback(() => {
+    try {
+      localStorage.removeItem(STORAGE_META_ACCESS);
+      localStorage.removeItem(STORAGE_META_IG_USER_ID);
+    } catch (e) {
+      // Ignore if localStorage is unavailable (e.g. private mode)
+    }
     setAccessTokenState(null);
     setIgUserIdState(null);
-    localStorage.removeItem(STORAGE_META_ACCESS);
-    localStorage.removeItem(STORAGE_META_IG_USER_ID);
-  };
+  }, []);
 
   const fetchWithAuth = useCallback(
     async (url, opts = {}) => {
