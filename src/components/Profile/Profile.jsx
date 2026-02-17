@@ -17,6 +17,8 @@ export default function Profile({
   onBack,
   connectedPlatforms = [],
   onConnectClick,
+  googleAuth,
+  facebookAuth,
 }) {
   const totalGenerated = Object.values(generatedPosts || {}).flat().length;
 
@@ -198,6 +200,7 @@ export default function Profile({
           connectedPlatforms={connectedPlatforms}
           onConnectClick={onConnectClick}
           googleAuth={googleAuth}
+          facebookAuth={facebookAuth}
         />
         <PlanUsage totalGenerated={totalGenerated} />
         <TeamMembers orgName={orgName} />
