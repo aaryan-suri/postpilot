@@ -18,11 +18,36 @@ const SAMPLE_EVENTS = [
   { id: 5, title: "Alumni Networking Mixer", date: "2026-03-08", time: "4:00 PM", location: "Riggs Alumni Center", description: "Connect with alumni working in tech, finance, and consulting. Business casual attire.", type: "networking" },
 ];
 
+const DEMO_EVENTS_STORAGE_KEY = "pp_demo_events";
+
+function loadDemoEvents() {
+  if (typeof window === "undefined" || typeof localStorage === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(DEMO_EVENTS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveDemoEvents(events) {
+  if (typeof window === "undefined" || typeof localStorage === "undefined") return;
+  try {
+    localStorage.setItem(DEMO_EVENTS_STORAGE_KEY, JSON.stringify(events));
+  } catch {
+    // Ignore storage errors (quota, private mode, etc.)
+  }
+}
+
 export default function PostPilot() {
   const [pendingAuthRedirect, setPendingAuthRedirect] = useState(false);
   const handleTokensReceived = useCallback(() => setPendingAuthRedirect(true), []);
   const googleAuth = useGoogleAuth(handleTokensReceived);
   const { isConnected: googleCalendarConnected, calendarId, fetchWithAuth } = googleAuth;
+
+  const isDemoMode = !googleCalendarConnected;
 
   const [screen, setScreen] = useState("landing");
   const [screenHistory, setScreenHistory] = useState(["landing"]);
@@ -131,7 +156,8 @@ export default function PostPilot() {
     if (googleCalendarConnected && calendarId) {
       fetchEvents();
     } else {
-      setEvents(SAMPLE_EVENTS);
+      const storedDemoEvents = loadDemoEvents();
+      setEvents([...SAMPLE_EVENTS, ...storedDemoEvents]);
     }
   }, [screen, googleCalendarConnected, calendarId, fetchEvents]);
 
@@ -154,7 +180,18 @@ export default function PostPilot() {
 
   const addEvent = () => {
     if (newEvent.title?.trim() && newEvent.date) {
-      setEvents((prev) => [...prev, { ...newEvent, id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}` }]);
+      const createdEvent = {
+        ...newEvent,
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      };
+
+      setEvents((prev) => [...prev, createdEvent]);
+
+      if (isDemoMode) {
+        const existing = loadDemoEvents();
+        saveDemoEvents([...existing, createdEvent]);
+      }
+
       setNewEvent({ title: "", date: "", time: "", location: "", description: "", type: "gbm" });
       setShowAddEvent(false);
     }
@@ -396,7 +433,7 @@ export default function PostPilot() {
       eventsError={eventsError}
       eventsLastSynced={eventsLastSynced}
       onRefreshEvents={fetchEvents}
-      isDemoMode={!googleCalendarConnected}
+      isDemoMode={isDemoMode}
       onEventTypeChange={updateEventType}
     />
     <Toast message={toastMessage} visible={!!toastMessage} onHide={() => setToastMessage(null)} />
