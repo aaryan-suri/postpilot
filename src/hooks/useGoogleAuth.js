@@ -42,7 +42,7 @@ export function useGoogleAuth(onTokensReceived) {
       setCalendarIdState(storedCalendar);
       window.history.replaceState({}, "", window.location.pathname);
       onTokensReceived?.();
-    } else if (storedAccess) {
+    } else if (storedAccess && String(storedAccess).trim()) {
       setAccessTokenState(storedAccess);
       setRefreshTokenState(storedRefresh);
       setCalendarIdState(storedCalendar);
@@ -66,7 +66,7 @@ export function useGoogleAuth(onTokensReceived) {
     else localStorage.removeItem(STORAGE_CALENDAR);
   };
 
-  const isConnected = !!accessToken;
+  const isConnected = !!(accessToken && String(accessToken).trim());
 
   const connect = async () => {
     try {
@@ -89,11 +89,18 @@ export function useGoogleAuth(onTokensReceived) {
     }
   };
 
-  const disconnect = () => {
-    setAccessToken(null);
-    setRefreshToken(null);
-    setCalendarId(null);
-  };
+  const disconnect = useCallback(() => {
+    try {
+      localStorage.removeItem(STORAGE_ACCESS);
+      localStorage.removeItem(STORAGE_REFRESH);
+      localStorage.removeItem(STORAGE_CALENDAR);
+    } catch (e) {
+      // Ignore if localStorage is unavailable (e.g. private mode)
+    }
+    setAccessTokenState(null);
+    setRefreshTokenState(null);
+    setCalendarIdState(null);
+  }, []);
 
   const refreshAccessToken = async () => {
     const stored = localStorage.getItem(STORAGE_REFRESH);

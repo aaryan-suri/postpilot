@@ -137,6 +137,8 @@ export default function PostPilot() {
       fetchEvents();
     } else {
       setEvents([...SAMPLE_EVENTS, ...demoEvents]);
+      setEventsError(null);
+      setEventsLastSynced(null);
     }
   }, [screen, googleCalendarConnected, calendarId, fetchEvents, demoEvents]);
 
