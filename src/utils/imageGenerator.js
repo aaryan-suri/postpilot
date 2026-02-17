@@ -264,8 +264,8 @@ export function generateCountdownImage(event, daysUntil, orgName = '') {
   // Event title
   ctx.font = 'bold 36px "DM Sans", sans-serif';
   ctx.fillStyle = '#FFFFFF';
-  const title = event.title || 'Event';
-  const titleLines = wrapText(ctx, title, width - 160, 36);
+  const eventTitle = event?.title || 'Event';
+  const titleLines = wrapText(ctx, eventTitle, width - 160, 36);
   let yPos = height / 2 + 200;
   titleLines.forEach((line, i) => {
     ctx.fillText(line, width / 2, yPos + (i * 45));
