@@ -34,6 +34,7 @@ export default function Dashboard({
   generatedPosts,
   approvedPosts,
   contentQueue,
+  setContentQueue,
   activeTab,
   setActiveTab,
   onProfileClick,
@@ -48,6 +49,7 @@ export default function Dashboard({
   onPhotosChange,
   googleCalendarConnected,
   onConnectCalendar,
+  facebookAuth,
   eventsLoading,
   eventsError,
   eventsLastSynced,
@@ -472,7 +474,13 @@ export default function Dashboard({
               <h2 style={{ fontSize: 20, fontWeight: 700, letterSpacing: "-0.5px", marginBottom: 24 }}>
                 Content Queue
               </h2>
-              <ContentQueue queue={contentQueue} />
+              <ContentQueue
+                queue={contentQueue}
+                setContentQueue={setContentQueue}
+                facebookAuth={facebookAuth}
+                events={events}
+                orgName={orgName}
+              />
             </>
           )}
 

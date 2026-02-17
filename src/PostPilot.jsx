@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { generateSmartContent } from "./utils/contentEngine";
 import { useGoogleAuth } from "./hooks/useGoogleAuth";
+import { useFacebookAuth } from "./hooks/useFacebookAuth";
 
 import Landing from "./components/Landing/Landing";
 import Onboarding from "./components/Onboarding/Onboarding";
@@ -22,6 +23,7 @@ export default function PostPilot() {
   const [pendingAuthRedirect, setPendingAuthRedirect] = useState(false);
   const handleTokensReceived = useCallback(() => setPendingAuthRedirect(true), []);
   const googleAuth = useGoogleAuth(handleTokensReceived);
+  const facebookAuth = useFacebookAuth();
   const { isConnected: googleCalendarConnected, calendarId, fetchWithAuth } = googleAuth;
 
   const isDemoMode = !googleCalendarConnected;
@@ -328,13 +330,14 @@ export default function PostPilot() {
           approvedPosts={approvedPosts}
           generatedPosts={generatedPosts}
           onBack={goBack}
-          connectedPlatforms={
-            googleCalendarConnected
-              ? ["Google Calendar", ...connectedPlatforms.filter((p) => p !== "Google Calendar")]
-              : connectedPlatforms
-          }
+          connectedPlatforms={[
+            ...(googleCalendarConnected ? ["Google Calendar"] : []),
+            ...(facebookAuth.isConnected ? ["Instagram"] : []),
+            ...connectedPlatforms.filter((p) => p !== "Google Calendar" && p !== "Instagram"),
+          ]}
           onConnectClick={setConnectModalPlatform}
           googleAuth={googleAuth}
+          facebookAuth={facebookAuth}
         />
         {connectModalPlatform && (
           <ConnectPlatformModal
@@ -391,6 +394,7 @@ export default function PostPilot() {
       generatedPosts={generatedPosts}
       approvedPosts={approvedPosts}
       contentQueue={contentQueue}
+      setContentQueue={setContentQueue}
       activeTab={activeTab}
       setActiveTab={setActiveTab}
       onProfileClick={() => navigateTo("profile")}
@@ -405,6 +409,7 @@ export default function PostPilot() {
       onPhotosChange={setPhotos}
       googleCalendarConnected={googleCalendarConnected}
       onConnectCalendar={googleAuth.connect}
+      facebookAuth={facebookAuth}
       eventsLoading={eventsLoading}
       eventsError={eventsError}
       eventsLastSynced={eventsLastSynced}

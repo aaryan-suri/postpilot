@@ -35,6 +35,14 @@ npm run dev
 # App runs at http://localhost:5173
 ```
 
+### Local testing (Instagram publishing)
+
+1. Run the full app: `npx vercel dev` and open **http://localhost:3000** (not 5173).
+2. In Meta app dashboard, set **Valid OAuth Redirect URIs** to `http://localhost:3000/api/auth/facebook/callback`.
+3. Set `.env`: `META_APP_ID`, `META_APP_SECRET`, `META_REDIRECT_URI=http://localhost:3000/api/auth/facebook/callback`, and (for image upload) create a Vercel Blob store and use its `BLOB_READ_WRITE_TOKEN`.
+4. Profile → Connected Accounts → Connect Instagram → authorize with Facebook; you’ll be redirected back to the app.
+5. Generate content for an event, approve an Instagram post, open Dashboard → Content Queue, and click **Post to Instagram**.
+
 ## 🌐 Deploy to Vercel (Free)
 
 This is the easiest way to get a public URL for judges/demos.
@@ -43,9 +51,7 @@ This is the easiest way to get a public URL for judges/demos.
 1. Push your code to GitHub
 2. Go to [vercel.com](https://vercel.com) and sign in with GitHub
 3. Click **"Add New Project"** → Import your repo
-4. Add your environment variable:
-   - Key: `ANTHROPIC_API_KEY`
-   - Value: `sk-ant-...` (your key)
+4. Add your environment variables (at least `ANTHROPIC_API_KEY`; for Instagram add Meta + Blob vars — see table below).
 5. Click **Deploy**
 6. Done! You'll get a URL like `postpilot.vercel.app`
 
@@ -69,7 +75,14 @@ vercel --prod
 ```
 postpilot/
 ├── api/
-│   └── generate.js        # Serverless API proxy (keeps API key safe)
+│   ├── generate.js        # Serverless API proxy (keeps API key safe)
+│   ├── upload-image.js    # Upload data URL → Vercel Blob (public URL for IG)
+│   ├── instagram/
+│   │   └── publish.js     # Create IG media container + publish
+│   └── auth/
+│       ├── url.js, callback.js, refresh.js       # Google OAuth
+│       └── facebook/
+│           ├── url.js, callback.js, refresh.js   # Meta OAuth for Instagram
 ├── public/                 # Static assets
 ├── src/
 │   ├── main.jsx           # React entry point
@@ -133,7 +146,7 @@ git push origin your-name/what-youre-working-on
 
 ### Next Up
 - [ ] Real Google Calendar sync
-- [ ] Instagram Graph API integration (auto-posting)
+- [x] Instagram Graph API integration (auto-posting) — connect in Profile, post from Content Queue
 - [ ] Photo library with AI tagging
 - [ ] Analytics dashboard
 - [ ] Multi-org support
@@ -152,6 +165,19 @@ git push origin your-name/what-youre-working-on
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID | For Calendar sync |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | For Calendar sync |
 | `GOOGLE_REDIRECT_URI` | OAuth callback URL (e.g. `http://localhost:3000/api/auth/callback` for local) | For Calendar sync |
+| `META_APP_ID` | Meta/Facebook app ID | For Instagram publishing |
+| `META_APP_SECRET` | Meta/Facebook app secret | For Instagram publishing |
+| `META_REDIRECT_URI` | OAuth callback (e.g. `http://localhost:3000/api/auth/facebook/callback` for local) | For Instagram publishing |
+| `BLOB_READ_WRITE_TOKEN` | Vercel Blob token (auto-set when you add a Blob store to the project) | For image upload → Instagram |
+
+**Instagram publishing:** Your Instagram account must be a **Business or Creator** account connected to a **Facebook Page**. Create an app at [developers.facebook.com](https://developers.facebook.com/), add Facebook Login, and set the redirect URI in the app dashboard. For production, add your production callback URL (e.g. `https://your-app.vercel.app/api/auth/facebook/callback`) to the Meta app and set `META_REDIRECT_URI` in Vercel.
+
+## Known limitations (MVP)
+
+- **Token storage:** Google and Meta tokens are stored in `localStorage` for the MVP. Replace with httpOnly cookies or server-side session storage for production.
+- **Scheduling:** "Post to Instagram" publishes immediately. No scheduled/time-delayed posting yet.
+- **Meta token lifetime:** Page access tokens from the OAuth flow are short-lived. For production, implement long-lived token exchange (see Meta docs) and optional refresh.
+- **Single org:** One connected Instagram account per browser session; no multi-org or multi-account switching in this release.
 
 ## 📄 License
 

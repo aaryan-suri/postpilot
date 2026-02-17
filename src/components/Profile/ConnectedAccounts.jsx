@@ -14,10 +14,12 @@ export default function ConnectedAccounts({
   connectedPlatforms = [],
   onConnectClick,
   googleAuth,
+  facebookAuth,
 }) {
   const [calendarName, setCalendarName] = useState(null);
   const isGoogleConnected = googleAuth?.isConnected;
   const calendarId = googleAuth?.calendarId;
+  const isInstagramConnected = facebookAuth?.isConnected;
 
   useEffect(() => {
     if (isGoogleConnected && calendarId && googleAuth?.fetchWithAuth) {
@@ -47,8 +49,8 @@ export default function ConnectedAccounts({
     }
     const platformName = key === "instagram" ? "Instagram" : key === "tiktok" ? "TikTok" : key === "twitter" ? "Twitter/X" : "LinkedIn";
     const selected = platforms?.includes(platformName);
-    const connected = connectedPlatforms?.includes(platformName);
-    if (connected) return { status: "connected", detail: "Connected", canClick: false };
+    const connected = key === "instagram" ? isInstagramConnected : connectedPlatforms?.includes(platformName);
+    if (connected) return { status: "connected", detail: "Connected", canClick: true, canDisconnect: key === "instagram" };
     if (selected) return { status: "ready", detail: "Ready to connect", canClick: true, platformName };
     return { status: "none", detail: "Not selected", canClick: false };
   };
@@ -97,11 +99,11 @@ export default function ConnectedAccounts({
                   color: "#E8B931",
                   cursor: "pointer",
                 }}
-                onClick={() =>
-                  isCalendar && googleAuth?.connect
-                    ? googleAuth.connect()
-                    : onConnectClick?.(platformName)
-                }
+                onClick={() => {
+                  if (isCalendar && googleAuth?.connect) return googleAuth.connect();
+                  if (acct.statusKey === "instagram" && facebookAuth?.connect) return facebookAuth.connect();
+                  onConnectClick?.(platformName);
+                }}
               >
                 Connect →
               </div>
@@ -122,7 +124,27 @@ export default function ConnectedAccounts({
             )}
             {canDisconnect && isCalendar && googleAuth?.disconnect && (
               <button
+                type="button"
                 onClick={googleAuth.disconnect}
+                style={{
+                  padding: "5px 12px",
+                  borderRadius: 50,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.15)",
+                  color: "rgba(255,255,255,0.6)",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                }}
+              >
+                Disconnect
+              </button>
+            )}
+            {canDisconnect && acct.statusKey === "instagram" && facebookAuth?.disconnect && (
+              <button
+                type="button"
+                onClick={facebookAuth.disconnect}
                 style={{
                   padding: "5px 12px",
                   borderRadius: 50,

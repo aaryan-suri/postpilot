@@ -1,0 +1,100 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+
+// Token storage: MVP uses localStorage. Migrate to httpOnly cookies or server-side storage for production.
+const STORAGE_META_ACCESS = "pp_meta_access_token";
+const STORAGE_META_IG_USER_ID = "pp_meta_ig_user_id";
+
+export function useFacebookAuth(onTokensReceived) {
+  const [accessToken, setAccessTokenState] = useState(null);
+  const [igUserId, setIgUserIdState] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const accessTokenRef = useRef(null);
+  accessTokenRef.current = accessToken;
+
+  useEffect(() => {
+    const storedAccess = localStorage.getItem(STORAGE_META_ACCESS);
+    const storedIgUserId = localStorage.getItem(STORAGE_META_IG_USER_ID);
+
+    const params = new URLSearchParams(window.location.search);
+    const urlAccess = params.get("meta_access_token");
+    const urlIgUserId = params.get("meta_ig_user_id");
+    const authError = params.get("meta_auth_error");
+
+    if (authError) {
+      console.warn("Meta OAuth error:", authError);
+      window.history.replaceState({}, "", window.location.pathname);
+      setAccessTokenState(storedAccess);
+      setIgUserIdState(storedIgUserId);
+      setIsInitialized(true);
+      return;
+    }
+
+    if (urlAccess && urlIgUserId) {
+      localStorage.setItem(STORAGE_META_ACCESS, urlAccess);
+      localStorage.setItem(STORAGE_META_IG_USER_ID, urlIgUserId);
+      setAccessTokenState(urlAccess);
+      setIgUserIdState(urlIgUserId);
+      window.history.replaceState({}, "", window.location.pathname);
+      onTokensReceived?.();
+    } else if (storedAccess) {
+      setAccessTokenState(storedAccess);
+      setIgUserIdState(storedIgUserId);
+    }
+    setIsInitialized(true);
+  }, [onTokensReceived]);
+
+  const connect = async () => {
+    try {
+      const res = await fetch("/api/auth/facebook/url");
+      const data = await res.json().catch(() => ({}));
+      if (data?.url) {
+        window.location.href = data.url;
+        return;
+      }
+      if (res.status === 500) {
+        throw new Error(
+          "Meta OAuth not configured. Add META_APP_ID, META_APP_SECRET, META_REDIRECT_URI to .env and run with npx vercel dev"
+        );
+      }
+      if (!res.ok) {
+        throw new Error(`API error (${res.status}). Run with npx vercel dev and open http://localhost:3000`);
+      }
+      throw new Error("No auth URL returned. Check server logs.");
+    } catch (err) {
+      console.error("Failed to get Meta auth URL:", err);
+      throw err;
+    }
+  };
+
+  const disconnect = () => {
+    setAccessTokenState(null);
+    setIgUserIdState(null);
+    localStorage.removeItem(STORAGE_META_ACCESS);
+    localStorage.removeItem(STORAGE_META_IG_USER_ID);
+  };
+
+  const fetchWithAuth = useCallback(
+    async (url, opts = {}) => {
+      const token = accessTokenRef.current;
+      if (!token) return new Response(JSON.stringify({ error: "Not connected" }), { status: 401 });
+      return fetch(url, {
+        ...opts,
+        headers: {
+          ...opts.headers,
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    },
+    []
+  );
+
+  return {
+    isConnected: !!accessToken,
+    isInitialized,
+    igUserId,
+    accessToken,
+    connect,
+    disconnect,
+    fetchWithAuth,
+  };
+}
