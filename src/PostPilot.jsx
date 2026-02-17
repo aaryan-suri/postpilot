@@ -18,29 +18,6 @@ const SAMPLE_EVENTS = [
   { id: 5, title: "Alumni Networking Mixer", date: "2026-03-08", time: "4:00 PM", location: "Riggs Alumni Center", description: "Connect with alumni working in tech, finance, and consulting. Business casual attire.", type: "networking" },
 ];
 
-const DEMO_EVENTS_STORAGE_KEY = "pp_demo_events";
-
-function loadDemoEvents() {
-  if (typeof window === "undefined" || typeof localStorage === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(DEMO_EVENTS_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveDemoEvents(events) {
-  if (typeof window === "undefined" || typeof localStorage === "undefined") return;
-  try {
-    localStorage.setItem(DEMO_EVENTS_STORAGE_KEY, JSON.stringify(events));
-  } catch {
-    // Ignore storage errors (quota, private mode, etc.)
-  }
-}
-
 export default function PostPilot() {
   const [pendingAuthRedirect, setPendingAuthRedirect] = useState(false);
   const handleTokensReceived = useCallback(() => setPendingAuthRedirect(true), []);
@@ -56,6 +33,7 @@ export default function PostPilot() {
   const [tone, setTone] = useState("");
   const [platforms, setPlatforms] = useState([]);
   const [events, setEvents] = useState([]);
+  const [demoEvents, setDemoEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [eventsError, setEventsError] = useState(null);
   const [eventsLastSynced, setEventsLastSynced] = useState(null);
@@ -156,10 +134,9 @@ export default function PostPilot() {
     if (googleCalendarConnected && calendarId) {
       fetchEvents();
     } else {
-      const storedDemoEvents = loadDemoEvents();
-      setEvents([...SAMPLE_EVENTS, ...storedDemoEvents]);
+      setEvents([...SAMPLE_EVENTS, ...demoEvents]);
     }
-  }, [screen, googleCalendarConnected, calendarId, fetchEvents]);
+  }, [screen, googleCalendarConnected, calendarId, fetchEvents, demoEvents]);
 
   const navigateTo = (s) => {
     setScreenHistory((prev) => [...prev, s]);
@@ -188,8 +165,7 @@ export default function PostPilot() {
       setEvents((prev) => [...prev, createdEvent]);
 
       if (isDemoMode) {
-        const existing = loadDemoEvents();
-        saveDemoEvents([...existing, createdEvent]);
+        setDemoEvents((prev) => [...prev, createdEvent]);
       }
 
       setNewEvent({ title: "", date: "", time: "", location: "", description: "", type: "gbm" });
