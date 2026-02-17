@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-// Token storage: MVP uses localStorage. Migrate to httpOnly cookies for production security.
+// Google auth: session-only (no persistence across visits). Cleared on each page load.
 const STORAGE_ACCESS = "pp_access_token";
 const STORAGE_REFRESH = "pp_refresh_token";
 const STORAGE_CALENDAR = "pp_calendar_id";
@@ -11,13 +11,19 @@ export function useGoogleAuth(onTokensReceived) {
   const [calendarId, setCalendarIdState] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const accessTokenRef = useRef(null);
+  const refreshTokenRef = useRef(null);
   accessTokenRef.current = accessToken;
+  refreshTokenRef.current = refreshToken;
 
-  // Load from localStorage and URL params on mount
+  // On mount: clear any persisted Google auth so each visit starts fresh. Only use URL params from OAuth callback.
   useEffect(() => {
-    const storedAccess = localStorage.getItem(STORAGE_ACCESS);
-    const storedRefresh = localStorage.getItem(STORAGE_REFRESH);
-    const storedCalendar = localStorage.getItem(STORAGE_CALENDAR);
+    try {
+      localStorage.removeItem(STORAGE_ACCESS);
+      localStorage.removeItem(STORAGE_REFRESH);
+      localStorage.removeItem(STORAGE_CALENDAR);
+    } catch (e) {
+      // Ignore if localStorage unavailable
+    }
 
     const params = new URLSearchParams(window.location.search);
     const urlAccess = params.get("access_token");
@@ -27,43 +33,30 @@ export function useGoogleAuth(onTokensReceived) {
     if (authError) {
       console.warn("OAuth error:", authError);
       window.history.replaceState({}, "", window.location.pathname);
-      setAccessTokenState(storedAccess);
-      setRefreshTokenState(storedRefresh);
-      setCalendarIdState(storedCalendar);
       setIsInitialized(true);
       return;
     }
 
     if (urlAccess) {
-      localStorage.setItem(STORAGE_ACCESS, urlAccess);
-      if (urlRefresh) localStorage.setItem(STORAGE_REFRESH, urlRefresh);
       setAccessTokenState(urlAccess);
       setRefreshTokenState(urlRefresh);
-      setCalendarIdState(storedCalendar);
       window.history.replaceState({}, "", window.location.pathname);
       onTokensReceived?.();
-    } else if (storedAccess && String(storedAccess).trim()) {
-      setAccessTokenState(storedAccess);
-      setRefreshTokenState(storedRefresh);
-      setCalendarIdState(storedCalendar);
     }
     setIsInitialized(true);
   }, [onTokensReceived]);
 
   const setAccessToken = (v) => {
     setAccessTokenState(v);
-    if (v) localStorage.setItem(STORAGE_ACCESS, v);
-    else localStorage.removeItem(STORAGE_ACCESS);
+    // No localStorage - session only
   };
   const setRefreshToken = (v) => {
     setRefreshTokenState(v);
-    if (v) localStorage.setItem(STORAGE_REFRESH, v);
-    else localStorage.removeItem(STORAGE_REFRESH);
+    // No localStorage - session only
   };
   const setCalendarId = (v) => {
     setCalendarIdState(v);
-    if (v) localStorage.setItem(STORAGE_CALENDAR, v);
-    else localStorage.removeItem(STORAGE_CALENDAR);
+    // No localStorage - session only
   };
 
   const isConnected = !!(accessToken && String(accessToken).trim());
@@ -103,14 +96,15 @@ export function useGoogleAuth(onTokensReceived) {
   }, []);
 
   const refreshAccessToken = async () => {
-    const stored = localStorage.getItem(STORAGE_REFRESH);
+    const stored = refreshTokenRef.current;
     if (!stored) {
       disconnect();
       return null;
     }
+    let timeoutId;
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      timeoutId = setTimeout(() => controller.abort(), 10000);
       const res = await fetch("/api/auth/refresh", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
