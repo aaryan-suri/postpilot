@@ -36,7 +36,7 @@ export function useFacebookAuth(onTokensReceived) {
       setIgUserIdState(urlIgUserId);
       window.history.replaceState({}, "", window.location.pathname);
       onTokensReceived?.();
-    } else if (storedAccess) {
+    } else if (storedAccess && String(storedAccess).trim()) {
       setAccessTokenState(storedAccess);
       setIgUserIdState(storedIgUserId);
     }
@@ -89,7 +89,7 @@ export function useFacebookAuth(onTokensReceived) {
   );
 
   return {
-    isConnected: !!accessToken,
+    isConnected: !!(accessToken && String(accessToken).trim()),
     isInitialized,
     igUserId,
     accessToken,
