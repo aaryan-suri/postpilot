@@ -202,7 +202,6 @@ export default function ContentQueue({
                 </span>
               )}
               {(status === "posting" || isPosting) && (
-              {status === "posting" && (
                 <span
                   style={{
                     padding: "5px 14px",
