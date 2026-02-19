@@ -116,15 +116,17 @@ export default function EventGallery() {
                   src={eventImages[event.id]}
                   alt={event.title}
                   style={{
-                    flex: "1 1 400px",
+                    width: 320,
                     maxWidth: "100%",
-                    height: "auto",
+                    height: 320,
+                    objectFit: "cover",
                     borderRadius: 16,
                     border: "1px solid rgba(255,255,255,0.1)",
+                    flexShrink: 0,
                   }}
                 />
               )}
-              <div style={{ flex: "1 1 300px", minWidth: 250 }}>
+              <div style={{ flex: "1 1 260px", minWidth: 200 }}>
                 <div
                   style={{
                     fontSize: 12,
