@@ -10,7 +10,6 @@ export default function ContentQueue({
   events = [],
   orgName = "",
 }) {
-  const [postingIndex, setPostingIndex] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
 
   const facebookAuthRef = useRef(facebookAuth);
@@ -47,7 +46,6 @@ export default function ContentQueue({
         return;
       }
 
-      setPostingIndex(index);
       setErrorMessage(null);
       updateItemStatus(index, "posting");
 
@@ -95,8 +93,6 @@ export default function ContentQueue({
         const msg = err.message || "Post to Instagram failed.";
         updateItemStatus(index, "failed", msg);
         setErrorMessage(msg);
-      } finally {
-        setPostingIndex(null);
       }
     },
     [queue, events, orgName, updateItemStatus]
@@ -132,7 +128,6 @@ export default function ContentQueue({
         const status = post.status || "scheduled";
         const isInstagram = post.platform === "Instagram";
         const canPost = isInstagram && facebookAuth?.isConnected && status === "scheduled";
-        const isPosting = postingIndex === i;
 
         return (
           <div
@@ -207,6 +202,7 @@ export default function ContentQueue({
                 </span>
               )}
               {(status === "posting" || isPosting) && (
+              {status === "posting" && (
                 <span
                   style={{
                     padding: "5px 14px",
@@ -238,7 +234,7 @@ export default function ContentQueue({
                 <button
                   type="button"
                   onClick={() => handlePostToInstagram(i)}
-                  disabled={isPosting}
+                  disabled={status === "posting"}
                   style={{
                     padding: "8px 16px",
                     borderRadius: 50,
