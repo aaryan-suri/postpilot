@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { STYLES } from "../../utils/styles";
-import { getEventImage } from "../../utils/imageGenerator";
+
+// Static event graphics (custom-designed posters)
+const EVENT_IMAGES = {
+  1: "/events/spring-gbm.png",
+  2: "/events/resume-workshop.png",
+  3: "/events/movie-night.png",
+  4: "/events/hackathon.png",
+  5: "/events/alumni-mixer.png",
+};
 
 const SAMPLE_EVENTS = [
   { id: 1, title: "Spring General Body Meeting", date: "2026-02-18", time: "7:00 PM", location: "Stamp Student Union, Room 2134", type: "gbm" },
@@ -12,20 +20,6 @@ const SAMPLE_EVENTS = [
 
 export default function EventGallery({ visible }) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [eventImages, setEventImages] = useState({});
-
-  useEffect(() => {
-    // Generate images for all events
-    const images = {};
-    SAMPLE_EVENTS.forEach(event => {
-      try {
-        images[event.id] = getEventImage(event, 'announcement', '');
-      } catch (e) {
-        console.warn('Failed to generate image for event:', event.id, e);
-      }
-    });
-    setEventImages(images);
-  }, []);
 
   useEffect(() => {
     // Auto-rotate carousel
@@ -130,9 +124,9 @@ export default function EventGallery({ visible }) {
                 flexWrap: "wrap",
               }}
             >
-              {eventImages[event.id] && (
+              {EVENT_IMAGES[event.id] && (
                 <img
-                  src={eventImages[event.id]}
+                  src={EVENT_IMAGES[event.id]}
                   alt={event.title}
                   style={{
                     width: 320,

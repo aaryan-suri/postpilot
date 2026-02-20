@@ -1,6 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { STYLES } from "../../utils/styles";
-import { getEventImage } from "../../utils/imageGenerator";
+
+// Static event graphics (custom-designed posters)
+const EVENT_IMAGES = {
+  1: "/events/spring-gbm.png",
+  2: "/events/resume-workshop.png",
+  3: "/events/movie-night.png",
+};
 
 const FEATURED_EVENTS = [
   { id: 1, title: "Spring General Body Meeting", date: "2026-02-18", time: "7:00 PM", location: "Stamp Student Union", type: "gbm" },
@@ -9,21 +15,7 @@ const FEATURED_EVENTS = [
 ];
 
 export default function FeaturedEvents({ visible }) {
-  const [eventImages, setEventImages] = useState({});
   const [visibleIndex, setVisibleIndex] = useState(-1);
-
-  useEffect(() => {
-    // Generate images for featured events
-    const images = {};
-    FEATURED_EVENTS.forEach(event => {
-      try {
-        images[event.id] = getEventImage(event, 'announcement', '');
-      } catch (e) {
-        console.warn('Failed to generate image for event:', event.id, e);
-      }
-    });
-    setEventImages(images);
-  }, []);
 
   return (
     <div style={{ maxWidth: 1200, margin: "80px auto", padding: "0 32px" }}>
@@ -104,9 +96,9 @@ export default function FeaturedEvents({ visible }) {
               e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)";
             }}
           >
-            {eventImages[event.id] && (
+            {EVENT_IMAGES[event.id] && (
               <img
-                src={eventImages[event.id]}
+                src={EVENT_IMAGES[event.id]}
                 alt={event.title}
                 style={{
                   width: "100%",
