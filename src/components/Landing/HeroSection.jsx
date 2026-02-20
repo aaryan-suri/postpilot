@@ -10,63 +10,56 @@ export default function HeroSection({ onGetStarted }) {
   }, []);
 
   return (
-    <div
-      style={{
-        maxWidth: 1200,
-        margin: "0 auto",
-        textAlign: "center",
-        padding: "100px 32px 60px",
-        position: "relative",
-        overflow: "visible",
-      }}
-    >
-      {/* Ambient background layers - extend beyond container for smooth blend */}
+    <div style={{ width: "100%", position: "relative" }}>
+      {/* Full-width pulsing glow - spans entire viewport */}
       <div
         style={{
           position: "absolute",
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          width: "min(180vw, 1400px)",
-          height: "min(80vh, 600px)",
-          background: `radial-gradient(ellipse 80% 70% at center,
-            rgba(232,89,49,0.12) 0%,
-            rgba(232,185,49,0.08) 35%,
-            rgba(232,185,49,0.03) 60%,
-            transparent 85%)`,
+          width: "100vw",
+          height: "min(90vh, 700px)",
+          minHeight: 400,
+          background: `radial-gradient(ellipse 70% 80% at 50% 50%,
+            rgba(232,89,49,0.14) 0%,
+            rgba(232,185,49,0.09) 30%,
+            rgba(232,185,49,0.04) 55%,
+            rgba(232,89,49,0.02) 75%,
+            transparent 95%)`,
           animation: "hero-glow-pulse 8s ease-in-out infinite",
           pointerEvents: "none",
           zIndex: 0,
         }}
       />
-      {/* Soft edge halo - prevents harsh cutoff */}
+      {/* Wide soft halo - fills edges smoothly */}
       <div
         style={{
           position: "absolute",
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          width: "min(200vw, 1800px)",
+          width: "100vw",
           height: "min(100vh, 800px)",
-          background: `radial-gradient(ellipse 60% 50% at center, transparent 50%, rgba(232,89,49,0.03) 75%, transparent 100%)`,
+          background: `radial-gradient(ellipse 85% 60% at 50% 50%, transparent 40%, rgba(232,89,49,0.04) 70%, transparent 100%)`,
           animation: "hero-glow-drift 12s ease-in-out infinite",
           pointerEvents: "none",
           zIndex: 0,
         }}
       />
-      {/* Floating accent orbs */}
-      {[0, 1, 2].map((i) => (
+      {/* Floating accent orbs - spread across full width */}
+      {[0, 1, 2, 3].map((i) => (
         <div
           key={i}
           style={{
             position: "absolute",
-            top: `${30 + i * 25}%`,
-            left: `${15 + i * 35}%`,
-            width: 80 + i * 40,
-            height: 80 + i * 40,
+            top: `${25 + (i % 2) * 35}%`,
+            left: `${10 + (i * 25)}%`,
+            width: 100 + i * 30,
+            height: 100 + i * 30,
             borderRadius: "50%",
-            background: `radial-gradient(circle, rgba(232,185,49,${0.04 - i * 0.01}) 0%, transparent 70%)`,
-            filter: "blur(25px)",
+            background: `radial-gradient(circle, rgba(232,185,49,${0.03 - i * 0.005}) 0%, transparent 70%)`,
+            filter: "blur(30px)",
             pointerEvents: "none",
             zIndex: 0,
             animation: `float-orb 15s ease-in-out infinite`,
@@ -75,8 +68,17 @@ export default function HeroSection({ onGetStarted }) {
         />
       ))}
       
-      {/* Content */}
-      <div style={{ position: "relative", zIndex: 1 }}>
+      {/* Content - centered within full-width layout */}
+      <div
+        style={{
+          position: "relative",
+          zIndex: 1,
+          maxWidth: 1200,
+          margin: "0 auto",
+          textAlign: "center",
+          padding: "100px 32px 60px",
+        }}
+      >
         <div
           style={{
             display: "inline-block",
