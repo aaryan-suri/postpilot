@@ -17,24 +17,63 @@ export default function HeroSection({ onGetStarted }) {
         textAlign: "center",
         padding: "100px 32px 60px",
         position: "relative",
-        overflow: "hidden",
+        overflow: "visible",
       }}
     >
-      {/* Animated background gradient */}
+      {/* Ambient background layers - extend beyond container for smooth blend */}
       <div
         style={{
           position: "absolute",
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          width: "120%",
-          height: "120%",
-          background: `radial-gradient(ellipse at center, rgba(232,89,49,0.15) 0%, rgba(232,185,49,0.1) 50%, transparent 70%)`,
-          animation: "pulse-gradient 8s ease-in-out infinite",
+          width: "min(180vw, 1400px)",
+          height: "min(80vh, 600px)",
+          background: `radial-gradient(ellipse 80% 70% at center,
+            rgba(232,89,49,0.12) 0%,
+            rgba(232,185,49,0.08) 35%,
+            rgba(232,185,49,0.03) 60%,
+            transparent 85%)`,
+          animation: "hero-glow-pulse 8s ease-in-out infinite",
           pointerEvents: "none",
           zIndex: 0,
         }}
       />
+      {/* Soft edge halo - prevents harsh cutoff */}
+      <div
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: "min(200vw, 1800px)",
+          height: "min(100vh, 800px)",
+          background: `radial-gradient(ellipse 60% 50% at center, transparent 50%, rgba(232,89,49,0.03) 75%, transparent 100%)`,
+          animation: "hero-glow-drift 12s ease-in-out infinite",
+          pointerEvents: "none",
+          zIndex: 0,
+        }}
+      />
+      {/* Floating accent orbs */}
+      {[0, 1, 2].map((i) => (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            top: `${30 + i * 25}%`,
+            left: `${15 + i * 35}%`,
+            width: 80 + i * 40,
+            height: 80 + i * 40,
+            borderRadius: "50%",
+            background: `radial-gradient(circle, rgba(232,185,49,${0.04 - i * 0.01}) 0%, transparent 70%)`,
+            filter: "blur(25px)",
+            pointerEvents: "none",
+            zIndex: 0,
+            animation: `float-orb 15s ease-in-out infinite`,
+            animationDelay: `${i * 2}s`,
+          }}
+        />
+      ))}
       
       {/* Content */}
       <div style={{ position: "relative", zIndex: 1 }}>
@@ -112,15 +151,35 @@ export default function HeroSection({ onGetStarted }) {
       </div>
       
       <style>{`
-        @keyframes pulse-gradient {
+        @keyframes hero-glow-pulse {
           0%, 100% {
             transform: translate(-50%, -50%) scale(1);
-            opacity: 0.6;
+            opacity: 0.9;
           }
           50% {
-            transform: translate(-50%, -50%) scale(1.1);
+            transform: translate(-50%, -50%) scale(1.15);
+            opacity: 1;
+          }
+        }
+        @keyframes hero-glow-drift {
+          0%, 100% {
+            transform: translate(-50%, -50%) translate(0, 0);
+            opacity: 0.6;
+          }
+          33% {
+            transform: translate(-50%, -50%) translate(2%, 1%);
             opacity: 0.8;
           }
+          66% {
+            transform: translate(-50%, -50%) translate(-1%, 2%);
+            opacity: 0.7;
+          }
+        }
+        @keyframes float-orb {
+          0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+          25% { transform: translate(8px, -12px) scale(1.05); opacity: 0.8; }
+          50% { transform: translate(-5px, 6px) scale(0.95); opacity: 0.5; }
+          75% { transform: translate(10px, 8px) scale(1.02); opacity: 0.7; }
         }
         @keyframes gradient-shift {
           0%, 100% {

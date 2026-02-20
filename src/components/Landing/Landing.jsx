@@ -86,6 +86,20 @@ export default function Landing({ onGetStarted }) {
           animation: "float 30s ease-in-out infinite",
         }}
       />
+      <div
+        style={{
+          position: "absolute",
+          top: 20,
+          right: -60,
+          width: 350,
+          height: 350,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(232,89,49,0.1) 0%, transparent 65%)",
+          filter: "blur(50px)",
+          pointerEvents: "none",
+          animation: "float 22s ease-in-out infinite",
+        }}
+      />
       
       <Navbar
         onLogoClick={() => {}}
