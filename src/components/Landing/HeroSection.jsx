@@ -11,64 +11,6 @@ export default function HeroSection({ onGetStarted }) {
 
   return (
     <div style={{ width: "100%", position: "relative" }}>
-      {/* Full-width pulsing glow - spans entire viewport */}
-      <div
-        style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: "100vw",
-          height: "min(90vh, 700px)",
-          minHeight: 400,
-          background: `radial-gradient(ellipse 70% 80% at 50% 50%,
-            rgba(232,89,49,0.14) 0%,
-            rgba(232,185,49,0.09) 30%,
-            rgba(232,185,49,0.04) 55%,
-            rgba(232,89,49,0.02) 75%,
-            transparent 95%)`,
-          animation: "hero-glow-pulse 8s ease-in-out infinite",
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      />
-      {/* Wide soft halo - fills edges smoothly */}
-      <div
-        style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: "100vw",
-          height: "min(100vh, 800px)",
-          background: `radial-gradient(ellipse 85% 60% at 50% 50%, transparent 40%, rgba(232,89,49,0.04) 70%, transparent 100%)`,
-          animation: "hero-glow-drift 12s ease-in-out infinite",
-          pointerEvents: "none",
-          zIndex: 0,
-        }}
-      />
-      {/* Floating accent orbs - spread across full width */}
-      {[0, 1, 2, 3].map((i) => (
-        <div
-          key={i}
-          style={{
-            position: "absolute",
-            top: `${25 + (i % 2) * 35}%`,
-            left: `${10 + (i * 25)}%`,
-            width: 100 + i * 30,
-            height: 100 + i * 30,
-            borderRadius: "50%",
-            background: `radial-gradient(circle, rgba(232,185,49,${0.03 - i * 0.005}) 0%, transparent 70%)`,
-            filter: "blur(30px)",
-            pointerEvents: "none",
-            zIndex: 0,
-            animation: `float-orb 15s ease-in-out infinite`,
-            animationDelay: `${i * 2}s`,
-          }}
-        />
-      ))}
-      
-      {/* Content - centered within full-width layout */}
       <div
         style={{
           position: "relative",
@@ -153,36 +95,6 @@ export default function HeroSection({ onGetStarted }) {
       </div>
       
       <style>{`
-        @keyframes hero-glow-pulse {
-          0%, 100% {
-            transform: translate(-50%, -50%) scale(1);
-            opacity: 0.9;
-          }
-          50% {
-            transform: translate(-50%, -50%) scale(1.15);
-            opacity: 1;
-          }
-        }
-        @keyframes hero-glow-drift {
-          0%, 100% {
-            transform: translate(-50%, -50%) translate(0, 0);
-            opacity: 0.6;
-          }
-          33% {
-            transform: translate(-50%, -50%) translate(2%, 1%);
-            opacity: 0.8;
-          }
-          66% {
-            transform: translate(-50%, -50%) translate(-1%, 2%);
-            opacity: 0.7;
-          }
-        }
-        @keyframes float-orb {
-          0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.6; }
-          25% { transform: translate(8px, -12px) scale(1.05); opacity: 0.8; }
-          50% { transform: translate(-5px, 6px) scale(0.95); opacity: 0.5; }
-          75% { transform: translate(10px, 8px) scale(1.02); opacity: 0.7; }
-        }
         @keyframes gradient-shift {
           0%, 100% {
             filter: hue-rotate(0deg);

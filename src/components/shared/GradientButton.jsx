@@ -25,13 +25,19 @@ export default function GradientButton({ children, onClick, disabled, style = {}
       }}
       onMouseOver={(e) => {
         if (!disabled) {
-          e.target.style.transform = "scale(1.05)";
+          e.target.style.transform = "scale(1.03)";
           e.target.style.boxShadow = "0 12px 40px rgba(232,89,49,0.35)";
         }
       }}
       onMouseOut={(e) => {
         e.target.style.transform = "scale(1)";
         e.target.style.boxShadow = disabled ? "none" : "0 8px 32px rgba(232,89,49,0.25)";
+      }}
+      onMouseDown={(e) => {
+        if (!disabled) e.target.style.transform = "scale(0.98)";
+      }}
+      onMouseUp={(e) => {
+        if (!disabled) e.target.style.transform = "scale(1)";
       }}
     >
       {children}

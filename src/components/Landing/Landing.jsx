@@ -42,62 +42,28 @@ export default function Landing({ onGetStarted }) {
   };
 
   return (
-    <div style={{ ...STYLES.page, overflow: "hidden", position: "relative" }}>
-      {/* Enhanced background decorative elements */}
+    <div
+      style={{
+        ...STYLES.page,
+        overflow: "hidden",
+        position: "relative",
+        background: "linear-gradient(180deg, #0c0c0e 0%, #0A0A0B 50%, #080809 100%)",
+      }}
+    >
+      {/* Subtle accent glow - modern, minimal */}
       <div
         style={{
-          position: "absolute",
-          top: -120,
-          right: -120,
-          width: 400,
-          height: 400,
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(232,89,49,0.15) 0%, transparent 70%)",
-          filter: "blur(60px)",
+          position: "fixed",
+          top: "-20%",
+          left: "50%",
+          transform: "translateX(-50%)",
+          width: "100%",
+          maxWidth: 900,
+          height: "60vh",
+          background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(232,89,49,0.08) 0%, transparent 70%)",
           pointerEvents: "none",
-          animation: "float 20s ease-in-out infinite",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          bottom: -80,
-          left: -80,
-          width: 300,
-          height: 300,
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(232,185,49,0.1) 0%, transparent 70%)",
-          filter: "blur(50px)",
-          pointerEvents: "none",
-          animation: "float 25s ease-in-out infinite reverse",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          top: "40%",
-          left: "10%",
-          width: 200,
-          height: 200,
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(46,204,113,0.08) 0%, transparent 70%)",
-          filter: "blur(40px)",
-          pointerEvents: "none",
-          animation: "float 30s ease-in-out infinite",
-        }}
-      />
-      <div
-        style={{
-          position: "absolute",
-          top: 20,
-          right: -60,
-          width: 350,
-          height: 350,
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(232,89,49,0.1) 0%, transparent 65%)",
-          filter: "blur(50px)",
-          pointerEvents: "none",
-          animation: "float 22s ease-in-out infinite",
+          animation: "glow-pulse 6s ease-in-out infinite",
+          zIndex: 0,
         }}
       />
       
@@ -112,54 +78,29 @@ export default function Landing({ onGetStarted }) {
         style={{ position: "relative", zIndex: 10 }}
       />
       
-      {/* Hero + stats in one wrapper with unified gradient background */}
       <div
+        ref={setRef("hero")}
         style={{
           position: "relative",
+          zIndex: 1,
+          opacity: visibleSections.hero !== undefined ? 1 : 0,
+          transform: visibleSections.hero ? "translateY(0)" : "translateY(30px)",
+          transition: "opacity 0.8s ease-out, transform 0.8s ease-out",
         }}
       >
-        <div
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: -120,
-            background: `linear-gradient(to bottom,
-              rgba(232,89,49,0.06) 0%,
-              rgba(232,89,49,0.04) 18%,
-              rgba(232,185,49,0.025) 40%,
-              rgba(232,89,49,0.012) 60%,
-              #0f0f10 85%,
-              #0A0A0B 100%)`,
-            pointerEvents: "none",
-            zIndex: 0,
-          }}
-        />
-        <div
-          ref={setRef("hero")}
-          style={{
-            position: "relative",
-            zIndex: 1,
-            opacity: visibleSections.hero !== undefined ? 1 : 0,
-            transform: visibleSections.hero ? "translateY(0)" : "translateY(30px)",
-            transition: "opacity 0.8s ease-out, transform 0.8s ease-out",
-          }}
-        >
-          <HeroSection onGetStarted={onGetStarted} />
-        </div>
-        <div
-          ref={setRef("stats")}
-          style={{
-            position: "relative",
-            zIndex: 1,
-            opacity: visibleSections.stats !== undefined ? 1 : 0,
-            transform: visibleSections.stats ? "translateY(0)" : "translateY(30px)",
-            transition: "opacity 0.8s ease-out, transform 0.8s ease-out",
-          }}
-        >
-          <StatsSection />
-        </div>
+        <HeroSection onGetStarted={onGetStarted} />
+      </div>
+      <div
+        ref={setRef("stats")}
+        style={{
+          position: "relative",
+          zIndex: 1,
+          opacity: visibleSections.stats !== undefined ? 1 : 0,
+          transform: visibleSections.stats ? "translateY(0)" : "translateY(30px)",
+          transition: "opacity 0.8s ease-out, transform 0.8s ease-out",
+        }}
+      >
+        <StatsSection />
       </div>
       
       <div
@@ -196,16 +137,9 @@ export default function Landing({ onGetStarted }) {
       </div>
       
       <style>{`
-        @keyframes float {
-          0%, 100% {
-            transform: translate(0, 0) scale(1);
-          }
-          33% {
-            transform: translate(30px, -30px) scale(1.05);
-          }
-          66% {
-            transform: translate(-20px, 20px) scale(0.95);
-          }
+        @keyframes glow-pulse {
+          0%, 100% { opacity: 0.7; }
+          50% { opacity: 1; }
         }
       `}</style>
     </div>
