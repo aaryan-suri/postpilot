@@ -7,11 +7,19 @@ const STATS = [
   ["3 weeks", "Lost each leadership transition"],
 ];
 
-export default function StatsSection() {
+export default function StatsSection({ visible }) {
   return (
     <div style={{ display: "flex", justifyContent: "center", gap: 60, padding: "50px 32px 30px", flexWrap: "wrap" }}>
       {STATS.map(([value, label], i) => (
-        <div key={i} style={{ textAlign: "center" }}>
+        <div
+          key={i}
+          style={{
+            textAlign: "center",
+            opacity: visible ? 1 : 0,
+            transform: visible ? "translateY(0)" : "translateY(16px)",
+            transition: `opacity 0.6s ease-out ${i * 80}ms, transform 0.6s ease-out ${i * 80}ms`,
+          }}
+        >
           <div
             style={{
               fontSize: 32,

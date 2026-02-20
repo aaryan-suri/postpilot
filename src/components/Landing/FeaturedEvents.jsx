@@ -8,7 +8,7 @@ const FEATURED_EVENTS = [
   { id: 3, title: "Movie Night Social", date: "2026-02-27", time: "8:00 PM", location: "Tawes Hall", type: "social" },
 ];
 
-export default function FeaturedEvents() {
+export default function FeaturedEvents({ visible }) {
   const [eventImages, setEventImages] = useState({});
   const [visibleIndex, setVisibleIndex] = useState(-1);
 
@@ -36,6 +36,9 @@ export default function FeaturedEvents() {
           color: "rgba(255,255,255,0.3)",
           marginBottom: 16,
           fontWeight: 500,
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(16px)",
+          transition: "opacity 0.6s ease-out, transform 0.6s ease-out",
         }}
       >
         Featured Events
@@ -47,6 +50,9 @@ export default function FeaturedEvents() {
           fontWeight: 700,
           letterSpacing: "-1px",
           marginBottom: 48,
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(16px)",
+          transition: "opacity 0.6s ease-out 80ms, transform 0.6s ease-out 80ms",
         }}
       >
         Every event gets a{" "}
@@ -76,20 +82,25 @@ export default function FeaturedEvents() {
               padding: 0,
               overflow: "hidden",
               cursor: "pointer",
-              transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+              willChange: "transform",
               opacity: visibleIndex === -1 || visibleIndex >= index ? 1 : 0.3,
               transform: visibleIndex === -1 || visibleIndex >= index 
-                ? "translateY(0)" 
-                : "translateY(20px)",
+                ? "translateY(0) scale(1)" 
+                : "translateY(20px) scale(1)",
+              transition: "transform 0.25s ease-out, opacity 0.25s ease-out, box-shadow 0.25s ease-out, border-color 0.25s ease-out",
             }}
             onMouseEnter={() => setVisibleIndex(index)}
             onMouseLeave={() => setVisibleIndex(-1)}
             onMouseOver={(e) => {
-              e.currentTarget.style.transform = "translateY(-8px)";
-              e.currentTarget.style.borderColor = "rgba(232,89,49,0.3)";
+              if (visibleIndex === -1 || visibleIndex >= index) {
+                e.currentTarget.style.transform = "translateY(-6px) scale(1.03)";
+                e.currentTarget.style.boxShadow = "0 20px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(232,89,49,0.25)";
+                e.currentTarget.style.borderColor = "rgba(232,89,49,0.35)";
+              }
             }}
             onMouseOut={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.transform = "translateY(0) scale(1)";
+              e.currentTarget.style.boxShadow = "none";
               e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)";
             }}
           >

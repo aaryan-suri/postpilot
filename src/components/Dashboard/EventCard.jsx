@@ -34,18 +34,20 @@ export default function EventCard({
         justifyContent: "space-between",
         alignItems: "center",
         gap: 20,
-        transition: "all 0.3s",
+        transition: "transform 0.25s ease-out, box-shadow 0.25s ease-out, border-color 0.25s ease-out, background 0.25s ease-out",
         cursor: "pointer",
       }}
       onMouseOver={(e) => {
-        e.currentTarget.style.borderColor = "rgba(232,89,49,0.2)";
+        e.currentTarget.style.borderColor = "rgba(232,89,49,0.3)";
         e.currentTarget.style.background = "rgba(255,255,255,0.05)";
-        e.currentTarget.style.transform = "translateY(-2px)";
+        e.currentTarget.style.transform = "translateY(-6px) scale(1.02)";
+        e.currentTarget.style.boxShadow = "0 16px 32px rgba(0,0,0,0.2), 0 0 0 1px rgba(232,89,49,0.2)";
       }}
       onMouseOut={(e) => {
         e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)";
         e.currentTarget.style.background = "rgba(255,255,255,0.03)";
-        e.currentTarget.style.transform = "translateY(0)";
+        e.currentTarget.style.transform = "translateY(0) scale(1)";
+        e.currentTarget.style.boxShadow = "none";
       }}
     >
       {eventImage && (

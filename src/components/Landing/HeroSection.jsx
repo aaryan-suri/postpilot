@@ -11,6 +11,22 @@ export default function HeroSection({ onGetStarted }) {
 
   return (
     <div style={{ width: "100%", position: "relative" }}>
+      {/* Animated radial glow behind headline */}
+      <div
+        style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: "min(100%, 700px)",
+          height: 400,
+          background: "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(232,89,49,0.12) 0%, rgba(232,185,49,0.05) 50%, transparent 80%)",
+          filter: "blur(40px)",
+          pointerEvents: "none",
+          zIndex: 0,
+          animation: "hero-glow-breathe 5s ease-in-out infinite",
+        }}
+      />
       <div
         style={{
           position: "relative",
@@ -33,8 +49,9 @@ export default function HeroSection({ onGetStarted }) {
             fontWeight: 500,
             marginBottom: 28,
             opacity: animated ? 1 : 0,
-            transform: animated ? "translateY(0)" : "translateY(-20px)",
-            transition: "opacity 0.6s ease-out, transform 0.6s ease-out",
+            transform: animated ? "translateY(0)" : "translateY(20px)",
+            transition: "opacity 0.5s ease-out, transform 0.5s ease-out",
+            transitionDelay: "0ms",
           }}
         >
           🚀 Built for student organizations
@@ -46,20 +63,30 @@ export default function HeroSection({ onGetStarted }) {
             lineHeight: 1.08,
             letterSpacing: "-2px",
             margin: "0 0 24px",
-            opacity: animated ? 1 : 0,
-            transform: animated ? "translateY(0)" : "translateY(20px)",
-            transition: "opacity 0.8s ease-out 0.2s, transform 0.8s ease-out 0.2s",
           }}
         >
-          Your calendar posts.
-          <br />
           <span
             style={{
+              display: "block",
+              opacity: animated ? 1 : 0,
+              transform: animated ? "translateY(0)" : "translateY(20px)",
+              transition: "opacity 0.6s ease-out, transform 0.6s ease-out",
+              transitionDelay: "100ms",
+            }}
+          >
+            Your calendar posts.
+          </span>
+          <span
+            style={{
+              display: "block",
               background: STYLES.grad,
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
-              display: "inline-block",
-              animation: "gradient-shift 3s ease-in-out infinite",
+              opacity: animated ? 1 : 0,
+              transform: animated ? "translateY(0)" : "translateY(20px)",
+              transition: "opacity 0.6s ease-out, transform 0.6s ease-out",
+              transitionDelay: "200ms",
+              animation: animated ? "gradient-shift 3s ease-in-out infinite" : "none",
             }}
           >
             Automatically.
@@ -75,7 +102,7 @@ export default function HeroSection({ onGetStarted }) {
             fontWeight: 300,
             opacity: animated ? 1 : 0,
             transform: animated ? "translateY(0)" : "translateY(20px)",
-            transition: "opacity 0.8s ease-out 0.4s, transform 0.8s ease-out 0.4s",
+            transition: "opacity 0.6s ease-out 0.3s, transform 0.6s ease-out 0.3s",
           }}
         >
           PostPilot turns your org's Google Calendar into a fully managed social media presence. No
@@ -85,23 +112,23 @@ export default function HeroSection({ onGetStarted }) {
           style={{
             opacity: animated ? 1 : 0,
             transform: animated ? "translateY(0)" : "translateY(20px)",
-            transition: "opacity 0.8s ease-out 0.6s, transform 0.8s ease-out 0.6s",
+            transition: "opacity 0.7s ease-out 0.4s, transform 0.7s ease-out 0.4s",
           }}
         >
-          <GradientButton onClick={onGetStarted} size="lg">
-            Launch Demo →
+          <GradientButton onClick={onGetStarted} size="lg" withArrow>
+            Launch Demo
           </GradientButton>
         </div>
       </div>
       
       <style>{`
+        @keyframes hero-glow-breathe {
+          0%, 100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
+          50% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+        }
         @keyframes gradient-shift {
-          0%, 100% {
-            filter: hue-rotate(0deg);
-          }
-          50% {
-            filter: hue-rotate(10deg);
-          }
+          0%, 100% { filter: hue-rotate(0deg); }
+          50% { filter: hue-rotate(10deg); }
         }
       `}</style>
     </div>

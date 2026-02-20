@@ -10,7 +10,14 @@ import GradientButton from "../shared/GradientButton";
 
 export default function Landing({ onGetStarted }) {
   const [visibleSections, setVisibleSections] = useState({ hero: true });
+  const [scrolled, setScrolled] = useState(false);
   const sectionRefs = useRef({});
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -70,12 +77,12 @@ export default function Landing({ onGetStarted }) {
       <Navbar
         onLogoClick={() => {}}
         showBack={false}
+        scrolled={scrolled}
         rightContent={
-          <GradientButton onClick={onGetStarted} size="sm">
-            Get Started →
+          <GradientButton onClick={onGetStarted} size="sm" withArrow>
+            Get Started
           </GradientButton>
         }
-        style={{ position: "relative", zIndex: 10 }}
       />
       
       <div
@@ -84,8 +91,8 @@ export default function Landing({ onGetStarted }) {
           position: "relative",
           zIndex: 1,
           opacity: visibleSections.hero !== undefined ? 1 : 0,
-          transform: visibleSections.hero ? "translateY(0)" : "translateY(30px)",
-          transition: "opacity 0.8s ease-out, transform 0.8s ease-out",
+          transform: visibleSections.hero ? "translateY(0)" : "translateY(20px)",
+          transition: "opacity 0.7s ease-out, transform 0.7s ease-out",
         }}
       >
         <HeroSection onGetStarted={onGetStarted} />
@@ -96,44 +103,44 @@ export default function Landing({ onGetStarted }) {
           position: "relative",
           zIndex: 1,
           opacity: visibleSections.stats !== undefined ? 1 : 0,
-          transform: visibleSections.stats ? "translateY(0)" : "translateY(30px)",
-          transition: "opacity 0.8s ease-out, transform 0.8s ease-out",
+          transform: visibleSections.stats ? "translateY(0)" : "translateY(20px)",
+          transition: "opacity 0.7s ease-out, transform 0.7s ease-out",
         }}
       >
-        <StatsSection />
+        <StatsSection visible={visibleSections.stats} />
       </div>
       
       <div
         ref={setRef("gallery")}
         style={{
           opacity: visibleSections.gallery !== undefined ? 1 : 0,
-          transform: visibleSections.gallery ? "translateY(0)" : "translateY(30px)",
-          transition: "opacity 0.8s ease-out, transform 0.8s ease-out",
+          transform: visibleSections.gallery ? "translateY(0)" : "translateY(20px)",
+          transition: "opacity 0.7s ease-out, transform 0.7s ease-out",
         }}
       >
-        <EventGallery />
+        <EventGallery visible={visibleSections.gallery} />
       </div>
       
       <div
         ref={setRef("featured")}
         style={{
           opacity: visibleSections.featured !== undefined ? 1 : 0,
-          transform: visibleSections.featured ? "translateY(0)" : "translateY(30px)",
-          transition: "opacity 0.8s ease-out, transform 0.8s ease-out",
+          transform: visibleSections.featured ? "translateY(0)" : "translateY(20px)",
+          transition: "opacity 0.7s ease-out, transform 0.7s ease-out",
         }}
       >
-        <FeaturedEvents />
+        <FeaturedEvents visible={visibleSections.featured} />
       </div>
       
       <div
         ref={setRef("howitworks")}
         style={{
           opacity: visibleSections.howitworks !== undefined ? 1 : 0,
-          transform: visibleSections.howitworks ? "translateY(0)" : "translateY(30px)",
-          transition: "opacity 0.8s ease-out, transform 0.8s ease-out",
+          transform: visibleSections.howitworks ? "translateY(0)" : "translateY(20px)",
+          transition: "opacity 0.7s ease-out, transform 0.7s ease-out",
         }}
       >
-        <HowItWorks />
+        <HowItWorks visible={visibleSections.howitworks} />
       </div>
       
       <style>{`

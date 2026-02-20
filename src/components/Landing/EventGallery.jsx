@@ -10,7 +10,7 @@ const SAMPLE_EVENTS = [
   { id: 5, title: "Alumni Networking Mixer", date: "2026-03-08", time: "4:00 PM", location: "Riggs Alumni Center", type: "networking" },
 ];
 
-export default function EventGallery() {
+export default function EventGallery({ visible }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [eventImages, setEventImages] = useState({});
 
@@ -58,6 +58,9 @@ export default function EventGallery() {
           color: "rgba(255,255,255,0.3)",
           marginBottom: 16,
           fontWeight: 500,
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(16px)",
+          transition: "opacity 0.6s ease-out, transform 0.6s ease-out",
         }}
       >
         See It In Action
@@ -69,6 +72,9 @@ export default function EventGallery() {
           fontWeight: 700,
           letterSpacing: "-1px",
           marginBottom: 48,
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(16px)",
+          transition: "opacity 0.6s ease-out 80ms, transform 0.6s ease-out 80ms",
         }}
       >
         Beautiful event graphics,{" "}
@@ -87,9 +93,22 @@ export default function EventGallery() {
         style={{
           position: "relative",
           borderRadius: 20,
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(16px)",
           overflow: "hidden",
           background: "rgba(255,255,255,0.03)",
           border: "1px solid rgba(255,255,255,0.07)",
+          transition: "opacity 0.6s ease-out 160ms, transform 0.6s ease-out 160ms, box-shadow 0.25s ease-out, border-color 0.25s ease-out",
+        }}
+        onMouseOver={(e) => {
+          e.currentTarget.style.transform = "translateY(-6px) scale(1.01)";
+          e.currentTarget.style.boxShadow = "0 24px 48px rgba(0,0,0,0.25), 0 0 0 1px rgba(232,89,49,0.2)";
+          e.currentTarget.style.borderColor = "rgba(232,89,49,0.25)";
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.transform = "translateY(0) scale(1)";
+          e.currentTarget.style.boxShadow = "none";
+          e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)";
         }}
       >
         <div

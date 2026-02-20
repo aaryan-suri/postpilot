@@ -34,14 +34,24 @@ export default function Navbar({
   showBack = false,
   rightContent,
   style = {},
+  scrolled = false,
 }) {
   return (
     <nav
       style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 100,
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        padding: "24px 48px",
+        padding: scrolled ? "14px 48px" : "24px 48px",
+        background: scrolled ? "rgba(10,10,11,0.75)" : "transparent",
+        backdropFilter: scrolled ? "saturate(180%) blur(20px)" : "none",
+        WebkitBackdropFilter: scrolled ? "saturate(180%) blur(20px)" : "none",
+        borderBottom: scrolled ? "1px solid rgba(255,255,255,0.06)" : "1px solid transparent",
+        boxShadow: scrolled ? "0 4px 24px rgba(0,0,0,0.2)" : "none",
+        transition: "padding 0.2s ease-out, background 0.2s ease-out, backdrop-filter 0.2s ease-out, border-color 0.2s ease-out, box-shadow 0.2s ease-out",
         ...style,
       }}
     >

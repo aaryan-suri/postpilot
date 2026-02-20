@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { STYLES } from "../../utils/styles";
 
-export default function GradientButton({ children, onClick, disabled, style = {}, size = "md" }) {
+export default function GradientButton({ children, onClick, disabled, style = {}, size = "md", withArrow = false }) {
+  const [hover, setHover] = useState(false);
+  const [pressed, setPressed] = useState(false);
   const padding = size === "sm" ? "8px 20px" : size === "lg" ? "16px 44px" : "10px 28px";
   const fontSize = size === "sm" ? 13 : size === "lg" ? 16 : 14;
 
@@ -9,8 +11,14 @@ export default function GradientButton({ children, onClick, disabled, style = {}
     <button
       onClick={onClick}
       disabled={disabled}
+      onMouseEnter={() => !disabled && setHover(true)}
+      onMouseLeave={() => { setHover(false); setPressed(false); }}
+      onMouseDown={() => !disabled && setPressed(true)}
+      onMouseUp={() => setPressed(false)}
       style={{
-        background: disabled ? "rgba(255,255,255,0.08)" : STYLES.grad,
+        background: disabled ? "rgba(255,255,255,0.08)" : hover
+          ? "linear-gradient(135deg, #E8B931 0%, #E85D31 100%)"
+          : STYLES.grad,
         border: "none",
         color: disabled ? "rgba(255,255,255,0.3)" : "#fff",
         padding,
@@ -19,28 +27,30 @@ export default function GradientButton({ children, onClick, disabled, style = {}
         fontWeight: 600,
         cursor: disabled ? "not-allowed" : "pointer",
         fontFamily: "inherit",
-        transition: "transform 0.2s, box-shadow 0.2s",
-        boxShadow: disabled ? "none" : "0 8px 32px rgba(232,89,49,0.25)",
+        transition: "all 0.18s ease-out",
+        boxShadow: disabled ? "none" : hover
+          ? "0 0 0 1px rgba(232,89,49,0.4), 0 8px 32px rgba(232,89,49,0.35), 0 0 24px rgba(232,89,49,0.15)"
+          : "0 8px 32px rgba(232,89,49,0.25)",
+        transform: pressed && !disabled ? "scale(0.97)" : "scale(1)",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 6,
         ...style,
-      }}
-      onMouseOver={(e) => {
-        if (!disabled) {
-          e.target.style.transform = "scale(1.03)";
-          e.target.style.boxShadow = "0 12px 40px rgba(232,89,49,0.35)";
-        }
-      }}
-      onMouseOut={(e) => {
-        e.target.style.transform = "scale(1)";
-        e.target.style.boxShadow = disabled ? "none" : "0 8px 32px rgba(232,89,49,0.25)";
-      }}
-      onMouseDown={(e) => {
-        if (!disabled) e.target.style.transform = "scale(0.98)";
-      }}
-      onMouseUp={(e) => {
-        if (!disabled) e.target.style.transform = "scale(1)";
       }}
     >
       {children}
+      {withArrow && (
+        <span
+          style={{
+            display: "inline-block",
+            transition: "transform 0.18s ease-out",
+            transform: hover && !disabled ? "translateX(4px)" : "translateX(0)",
+          }}
+        >
+          →
+        </span>
+      )}
     </button>
   );
 }
