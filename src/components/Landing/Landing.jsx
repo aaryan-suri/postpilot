@@ -134,18 +134,18 @@ export default function Landing({ onGetStarted }) {
         <StatsSection />
       </div>
 
-      {/* Gradient bridge - smooth transition from glow to dark */}
+      {/* Gradient bridge - smooth fade into page background, no hard edge */}
       <div
         style={{
-          height: 140,
+          height: 180,
           width: "100%",
           background: `linear-gradient(to bottom,
-            rgba(232,89,49,0.06) 0%,
-            rgba(232,89,49,0.03) 30%,
-            rgba(232,185,49,0.02) 60%,
-            transparent 100%)`,
+            rgba(232,89,49,0.055) 0%,
+            rgba(232,89,49,0.025) 25%,
+            rgba(232,185,49,0.015) 50%,
+            rgba(15,15,16,0.95) 85%,
+            #0A0A0B 100%)`,
           pointerEvents: "none",
-          marginTop: -1,
         }}
       />
       
