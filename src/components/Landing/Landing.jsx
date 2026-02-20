@@ -133,6 +133,21 @@ export default function Landing({ onGetStarted }) {
       >
         <StatsSection />
       </div>
+
+      {/* Gradient bridge - smooth transition from glow to dark */}
+      <div
+        style={{
+          height: 140,
+          width: "100%",
+          background: `linear-gradient(to bottom,
+            rgba(232,89,49,0.06) 0%,
+            rgba(232,89,49,0.03) 30%,
+            rgba(232,185,49,0.02) 60%,
+            transparent 100%)`,
+          pointerEvents: "none",
+          marginTop: -1,
+        }}
+      />
       
       <div
         ref={setRef("gallery")}
