@@ -4,28 +4,19 @@ import { STYLES } from "../../utils/styles";
 const TESTIMONIALS = [
   {
     quote: "PostPilot cut our content creation time by 80%. We finally post consistently without the burnout.",
-    name: "Sarah Chen",
-    role: "President",
-    org: "Tech Club at UMD",
-    initials: "SC",
+    name: "Ashar Siddiqui",
+    role: "Tech Board of Maryland",
+    org: "",
+    initials: "AS",
   },
   {
     quote: "The AI gets our tone perfectly. Our followers think we have a full marketing team.",
-    name: "Marcus Johnson",
-    role: "VP of Marketing",
-    org: "Business Society",
-    initials: "MJ",
-  },
-  {
-    quote: "Set up in 10 minutes. Now our events actually get the promotion they deserve.",
-    name: "Elena Rodriguez",
-    role: "Social Chair",
-    org: "Campus Events Board",
-    initials: "ER",
+    name: "Shray Dube",
+    role: "Professional Chair",
+    org: "Alpha Sigma Phi",
+    initials: "SD",
   },
 ];
-
-const LOGO_ORGS = ["UMD Tech Club", "Terps Business Society", "Campus Events", "Greek Life Council"];
 
 export default function TestimonialsSection({ visible }) {
   return (
@@ -65,7 +56,8 @@ export default function TestimonialsSection({ visible }) {
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
           gap: 24,
-          marginBottom: 48,
+          maxWidth: 700,
+          margin: "0 auto",
         }}
       >
         {TESTIMONIALS.map((t, i) => (
@@ -119,33 +111,10 @@ export default function TestimonialsSection({ visible }) {
               <div>
                 <div style={{ fontWeight: 600, fontSize: 14 }}>{t.name}</div>
                 <div style={{ ...STYLES.sub, fontSize: 12 }}>
-                  {t.role}, {t.org}
+                  {t.org ? `${t.role}, ${t.org}` : t.role}
                 </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
-      <div
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          justifyContent: "center",
-          gap: 32,
-          paddingTop: 24,
-          borderTop: "1px solid rgba(255,255,255,0.06)",
-        }}
-      >
-        {LOGO_ORGS.map((org, i) => (
-          <div
-            key={i}
-            style={{
-              fontSize: 13,
-              color: "rgba(255,255,255,0.35)",
-              fontWeight: 500,
-            }}
-          >
-            {org}
           </div>
         ))}
       </div>
