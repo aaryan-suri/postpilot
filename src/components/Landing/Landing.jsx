@@ -3,9 +3,14 @@ import { STYLES } from "../../utils/styles";
 import Navbar from "../Layout/Navbar";
 import HeroSection from "./HeroSection";
 import StatsSection from "./StatsSection";
+import TestimonialsSection from "./TestimonialsSection";
 import HowItWorks from "./HowItWorks";
 import EventGallery from "./EventGallery";
 import FeaturedEvents from "./FeaturedEvents";
+import TrustSection from "./TrustSection";
+import PricingSection from "./PricingSection";
+import FinalCTASection from "./FinalCTASection";
+import Footer from "./Footer";
 import GradientButton from "../shared/GradientButton";
 
 export default function Landing({ onGetStarted }) {
@@ -109,7 +114,18 @@ export default function Landing({ onGetStarted }) {
       >
         <StatsSection visible={visibleSections.stats} />
       </div>
-      
+      <div
+        ref={setRef("testimonials")}
+        style={{
+          position: "relative",
+          zIndex: 1,
+          opacity: visibleSections.testimonials !== undefined ? 1 : 0,
+          transform: visibleSections.testimonials ? "translateY(0)" : "translateY(20px)",
+          transition: "opacity 0.7s ease-out, transform 0.7s ease-out",
+        }}
+      >
+        <TestimonialsSection visible={visibleSections.testimonials} />
+      </div>
       <div
         ref={setRef("gallery")}
         style={{
@@ -142,7 +158,21 @@ export default function Landing({ onGetStarted }) {
       >
         <HowItWorks visible={visibleSections.howitworks} />
       </div>
-      
+      <TrustSection />
+      <div
+        ref={setRef("pricing")}
+        style={{
+          opacity: visibleSections.pricing !== undefined ? 1 : 0,
+          transform: visibleSections.pricing ? "translateY(0)" : "translateY(20px)",
+          transition: "opacity 0.7s ease-out, transform 0.7s ease-out",
+        }}
+      >
+        <PricingSection visible={visibleSections.pricing} onGetStarted={onGetStarted} onBookDemo={onGetStarted} />
+      </div>
+      <div style={{ padding: "0 32px 0" }}>
+        <FinalCTASection onGetStarted={onGetStarted} />
+      </div>
+      <Footer />
       <style>{`
         @keyframes glow-pulse {
           0%, 100% { opacity: 0.7; }
