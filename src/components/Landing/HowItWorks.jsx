@@ -4,7 +4,9 @@ import { STYLES } from "../../utils/styles";
 const STEPS = [
   { icon: "📅", title: "Connect Calendar", desc: "Sync your Google Calendar. PostPilot reads your events automatically." },
   { icon: "🧠", title: "AI Generates Content", desc: "Smart content arcs for each event — teasers, reminders, recaps." },
+  { icon: "🎨", title: "Customize Graphics", desc: "Each event gets custom visuals, tailored to your brand and style." },
   { icon: "✅", title: "Review & Approve", desc: "Quick approve or edit. One click to schedule across platforms." },
+  { icon: "📱", title: "Publish Everywhere", desc: "One click to post across Instagram, Facebook, and more." },
   { icon: "📈", title: "Watch It Grow", desc: "Track engagement, optimize timing, and grow your audience." },
 ];
 
