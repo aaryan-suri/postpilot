@@ -112,42 +112,55 @@ export default function Landing({ onGetStarted }) {
         style={{ position: "relative", zIndex: 10 }}
       />
       
+      {/* Hero + stats in one wrapper with unified gradient background */}
       <div
-        ref={setRef("hero")}
         style={{
-          opacity: visibleSections.hero !== undefined ? 1 : 0,
-          transform: visibleSections.hero ? "translateY(0)" : "translateY(30px)",
-          transition: "opacity 0.8s ease-out, transform 0.8s ease-out",
+          position: "relative",
         }}
       >
-        <HeroSection onGetStarted={onGetStarted} />
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: -120,
+            background: `linear-gradient(to bottom,
+              rgba(232,89,49,0.06) 0%,
+              rgba(232,89,49,0.04) 18%,
+              rgba(232,185,49,0.025) 40%,
+              rgba(232,89,49,0.012) 60%,
+              #0f0f10 85%,
+              #0A0A0B 100%)`,
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        />
+        <div
+          ref={setRef("hero")}
+          style={{
+            position: "relative",
+            zIndex: 1,
+            opacity: visibleSections.hero !== undefined ? 1 : 0,
+            transform: visibleSections.hero ? "translateY(0)" : "translateY(30px)",
+            transition: "opacity 0.8s ease-out, transform 0.8s ease-out",
+          }}
+        >
+          <HeroSection onGetStarted={onGetStarted} />
+        </div>
+        <div
+          ref={setRef("stats")}
+          style={{
+            position: "relative",
+            zIndex: 1,
+            opacity: visibleSections.stats !== undefined ? 1 : 0,
+            transform: visibleSections.stats ? "translateY(0)" : "translateY(30px)",
+            transition: "opacity 0.8s ease-out, transform 0.8s ease-out",
+          }}
+        >
+          <StatsSection />
+        </div>
       </div>
-      
-      <div
-        ref={setRef("stats")}
-        style={{
-          opacity: visibleSections.stats !== undefined ? 1 : 0,
-          transform: visibleSections.stats ? "translateY(0)" : "translateY(30px)",
-          transition: "opacity 0.8s ease-out, transform 0.8s ease-out",
-        }}
-      >
-        <StatsSection />
-      </div>
-
-      {/* Gradient bridge - smooth fade into page background, no hard edge */}
-      <div
-        style={{
-          height: 180,
-          width: "100%",
-          background: `linear-gradient(to bottom,
-            rgba(232,89,49,0.055) 0%,
-            rgba(232,89,49,0.025) 25%,
-            rgba(232,185,49,0.015) 50%,
-            rgba(15,15,16,0.95) 85%,
-            #0A0A0B 100%)`,
-          pointerEvents: "none",
-        }}
-      />
       
       <div
         ref={setRef("gallery")}
