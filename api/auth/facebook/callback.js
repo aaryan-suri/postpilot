@@ -1,4 +1,6 @@
 // Vercel Serverless Function — exchanges Meta auth code for tokens, gets Page + IG user, redirects to frontend
+import { getMetaRedirectUri } from "./redirectUri.js";
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -6,11 +8,16 @@ export default async function handler(req, res) {
 
   const appId = process.env.META_APP_ID;
   const appSecret = process.env.META_APP_SECRET;
-  const redirectUri = process.env.META_REDIRECT_URI;
+  const { redirectUri } = getMetaRedirectUri();
   const code = req.query?.code;
 
-  if (!appId || !appSecret || !redirectUri) {
-    console.error("Meta OAuth env vars missing");
+  if (!appId || !appSecret) {
+    console.error("Meta OAuth env vars missing (META_APP_ID, META_APP_SECRET)");
+    return res.redirect("/?meta_auth_error=config");
+  }
+
+  if (!redirectUri) {
+    console.error("Meta OAuth: Could not derive redirect URI");
     return res.redirect("/?meta_auth_error=config");
   }
 

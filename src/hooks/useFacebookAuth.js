@@ -53,7 +53,9 @@ export function useFacebookAuth(onTokensReceived) {
       }
       if (res.status === 500) {
         const msg = data?.message || data?.error || "Instagram auth isn't configured (META_APP_ID / META_REDIRECT_URI missing).";
-        throw new Error(msg);
+        const err = new Error(msg);
+        err.apiPayload = data;
+        throw err;
       }
       if (!res.ok) {
         throw new Error(data?.message || data?.error || `API error (${res.status}). Run with npx vercel dev and open http://localhost:3000`);

@@ -20,6 +20,7 @@ export default function ConnectedAccounts({
   const [calendarName, setCalendarName] = useState(null);
   const [instagramConnecting, setInstagramConnecting] = useState(false);
   const [instagramConfigError, setInstagramConfigError] = useState(false);
+  const [instagramConfigPayload, setInstagramConfigPayload] = useState(null);
   const isGoogleConnected = googleAuth?.isConnected;
   const calendarId = googleAuth?.calendarId;
   const isInstagramConnected = facebookAuth?.isConnected;
@@ -65,13 +66,15 @@ export default function ConnectedAccounts({
     }
     setInstagramConnecting(true);
     setInstagramConfigError(false);
+    setInstagramConfigPayload(null);
     try {
       await facebookAuth.connect();
     } catch (err) {
       setInstagramConnecting(false);
       const msg = err?.message || "Could not start Instagram connect.";
-      if (msg.toLowerCase().includes("not configured") || msg.includes("META_APP_ID") || msg.includes("500")) {
+      if (err?.apiPayload || msg.toLowerCase().includes("not configured") || msg.includes("META_APP_ID") || msg.includes("500")) {
         setInstagramConfigError(true);
+        if (err?.apiPayload) setInstagramConfigPayload(err.apiPayload);
       }
       onInstagramConnectError?.(msg);
     }
@@ -240,7 +243,27 @@ export default function ConnectedAccounts({
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{detail}</div>
                 {acct.statusKey === "instagram" && instagramConfigError && (
                   <div style={{ fontSize: 11, color: "rgba(232,93,49,0.9)", marginTop: 4 }}>
-                    Instagram auth isn't configured (META_APP_ID / META_REDIRECT_URI missing).
+                    {instagramConfigPayload?.message || "Instagram auth isn't configured."}
+                    {instagramConfigPayload?.missing?.length > 0 && (
+                      <div style={{ marginTop: 4 }}>
+                        Missing: {instagramConfigPayload.missing.join(", ")}. Set them in Vercel → Project Settings → Environment Variables.
+                      </div>
+                    )}
+                    {instagramConfigPayload?.setupHint && (
+                      <div style={{ marginTop: 4 }}>
+                        {instagramConfigPayload.setupHint}
+                      </div>
+                    )}
+                    {instagramConfigPayload?.redirectUriSuggested && (
+                      <div style={{ marginTop: 2, fontFamily: "monospace", wordBreak: "break-all" }}>
+                        {instagramConfigPayload.redirectUriSuggested}
+                      </div>
+                    )}
+                    {instagramConfigPayload?.howToFix && (
+                      <div style={{ marginTop: 4 }}>
+                        How to fix: See README → Instagram Setup for step-by-step instructions.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

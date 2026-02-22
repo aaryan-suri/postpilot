@@ -38,8 +38,8 @@ npm run dev
 ### Local testing (Instagram publishing)
 
 1. Run the full app: `npx vercel dev` and open **http://localhost:3000** (not 5173).
-2. In Meta app dashboard, set **Valid OAuth Redirect URIs** to `http://localhost:3000/api/auth/facebook/callback`.
-3. Set `.env`: `META_APP_ID`, `META_APP_SECRET`, `META_REDIRECT_URI=http://localhost:3000/api/auth/facebook/callback`, and (for image upload) create a Vercel Blob store and use its `BLOB_READ_WRITE_TOKEN`.
+2. Complete **Instagram Setup** (see below): create Meta app, add redirect URI, set env vars.
+3. For local dev the callback URL is `http://localhost:3000/api/auth/facebook/callback`. You can confirm it by opening `http://localhost:3000/api/auth/facebook/redirect-uri` and copying the value into your Meta app.
 4. Profile → Connected Accounts → Connect Instagram → authorize with Facebook; you’ll be redirected back to the app.
 5. Generate content for an event, approve an Instagram post, open Dashboard → Content Queue, and click **Post to Instagram**.
 
@@ -49,7 +49,7 @@ npm run dev
 2. Complete onboarding if needed, then go to **Profile** → **Connected Accounts**.
 3. Click **Connect →** next to Instagram.
 4. **If configured:** You should be redirected to Meta/Facebook to authorize; after authorizing you return to the app with Instagram connected.
-5. **If not configured:** A toast appears with a message like “Instagram auth isn’t configured (META_APP_ID / META_REDIRECT_URI missing).” Add those env vars to `.env` and restart.
+5. **If not configured:** The UI shows which env vars are missing and the exact redirect URI to add in the Meta app. See **Instagram Setup** below and README → Environment Variables.
 
 ## 🌐 Deploy to Vercel (Free)
 
@@ -90,7 +90,7 @@ postpilot/
 │   └── auth/
 │       ├── url.js, callback.js, refresh.js       # Google OAuth
 │       └── facebook/
-│           ├── url.js, callback.js, refresh.js   # Meta OAuth for Instagram
+│           ├── url.js, callback.js, refresh.js, redirectUri.js, redirect-uri.js   # Meta OAuth for Instagram
 ├── public/                 # Static assets
 ├── src/
 │   ├── main.jsx           # React entry point
@@ -165,6 +165,37 @@ git push origin your-name/what-youre-working-on
 - [ ] University institutional licenses
 - [ ] Expansion beyond student orgs (nonprofits, community groups)
 
+## 📸 Instagram Setup
+
+To enable **Connect Instagram** and posting to Instagram:
+
+1. **Create a Meta App**
+   - Go to [developers.facebook.com](https://developers.facebook.com/) → **My Apps** → **Create App** → **Consumer** (or **Business**).
+   - In the app dashboard: **Add Product** → **Facebook Login** → **Settings**.
+
+2. **Add OAuth redirect URI(s)**
+   - Under **Valid OAuth Redirect URIs** add:
+     - **Local:** `http://localhost:3000/api/auth/facebook/callback`
+     - **Production:** `https://<your-vercel-domain>/api/auth/facebook/callback` (e.g. `https://postpilot.vercel.app/api/auth/facebook/callback`)
+   - You can get the exact callback URL for your environment by opening `/api/auth/facebook/redirect-uri` in the browser (e.g. `http://localhost:3000/api/auth/facebook/redirect-uri` when running `npx vercel dev`).
+
+3. **Required permissions / scopes**
+   - The app requests: `pages_show_list`, `pages_read_engagement`, `instagram_basic`, `instagram_content_publish`. Ensure your app has Instagram Graph API and Facebook Login enabled.
+
+4. **Required environment variables**
+   - **`META_APP_ID`** — from Meta app dashboard → Settings → Basic.
+   - **`META_APP_SECRET`** — from the same page (show and copy).
+   - **`FRONTEND_URL`** (optional but recommended) — e.g. `https://your-app.vercel.app` or `http://localhost:3000`. Used to derive the OAuth callback URL if `META_REDIRECT_URI` is not set.
+   - **`META_REDIRECT_URI`** (optional if derived) — set to the exact callback URL if you don’t use `FRONTEND_URL`/`VERCEL_URL`. Otherwise the app derives it as `{FRONTEND_URL or https://VERCEL_URL or http://localhost:3000}/api/auth/facebook/callback`.
+
+5. **Vercel**
+   - In Vercel → **Project Settings** → **Environment Variables**, set `META_APP_ID`, `META_APP_SECRET`, and (recommended) `FRONTEND_URL` to your production URL. Redeploy after changing env vars.
+
+6. **Local**
+   - Use `npx vercel dev` and open **http://localhost:3000**. The derived callback is `http://localhost:3000/api/auth/facebook/callback`; ensure that URL is added in the Meta app’s Valid OAuth Redirect URIs.
+
+If something is misconfigured, **Connect Instagram** shows which keys are missing and the redirect URI to add in the Meta dashboard.
+
 ## 🔑 Environment Variables
 
 | Variable | Description | Required |
@@ -175,10 +206,11 @@ git push origin your-name/what-youre-working-on
 | `GOOGLE_REDIRECT_URI` | OAuth callback URL (e.g. `http://localhost:3000/api/auth/callback` for local) | For Calendar sync |
 | `META_APP_ID` | Meta/Facebook app ID | For Instagram publishing |
 | `META_APP_SECRET` | Meta/Facebook app secret | For Instagram publishing |
-| `META_REDIRECT_URI` | OAuth callback (e.g. `http://localhost:3000/api/auth/facebook/callback` for local) | For Instagram publishing |
+| `FRONTEND_URL` | App base URL (e.g. `https://your-app.vercel.app` or `http://localhost:3000`); used to derive OAuth callback if `META_REDIRECT_URI` not set | Optional (recommended) |
+| `META_REDIRECT_URI` | OAuth callback (e.g. `http://localhost:3000/api/auth/facebook/callback`). Optional if `FRONTEND_URL` or `VERCEL_URL` is set — then derived as `{base}/api/auth/facebook/callback` | Optional when derived |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob token (auto-set when you add a Blob store to the project) | For image upload → Instagram |
 
-**Instagram publishing:** Your Instagram account must be a **Business or Creator** account connected to a **Facebook Page**. Create an app at [developers.facebook.com](https://developers.facebook.com/), add Facebook Login, and set the redirect URI in the app dashboard. For production, add your production callback URL (e.g. `https://your-app.vercel.app/api/auth/facebook/callback`) to the Meta app and set `META_REDIRECT_URI` in Vercel.
+**Instagram publishing:** Your Instagram account must be a **Business or Creator** account connected to a **Facebook Page**. See **Instagram Setup** above for step-by-step Meta app and env configuration.
 
 ## Known limitations (MVP)
 
