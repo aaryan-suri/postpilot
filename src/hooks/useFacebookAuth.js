@@ -47,19 +47,18 @@ export function useFacebookAuth(onTokensReceived) {
     try {
       const res = await fetch("/api/auth/facebook/url");
       const data = await res.json().catch(() => ({}));
-      if (data?.url) {
-        window.location.href = data.url;
+      if (res.ok && data?.url) {
+        window.location.assign(data.url);
         return;
       }
       if (res.status === 500) {
-        throw new Error(
-          "Meta OAuth not configured. Add META_APP_ID, META_APP_SECRET, META_REDIRECT_URI to .env and run with npx vercel dev"
-        );
+        const msg = data?.message || data?.error || "Instagram auth isn't configured (META_APP_ID / META_REDIRECT_URI missing).";
+        throw new Error(msg);
       }
       if (!res.ok) {
-        throw new Error(`API error (${res.status}). Run with npx vercel dev and open http://localhost:3000`);
+        throw new Error(data?.message || data?.error || `API error (${res.status}). Run with npx vercel dev and open http://localhost:3000`);
       }
-      throw new Error("No auth URL returned. Check server logs.");
+      throw new Error(data?.message || data?.error || "No auth URL returned. Check server logs.");
     } catch (err) {
       console.error("Failed to get Meta auth URL:", err);
       throw err;

@@ -15,8 +15,11 @@ export default function ConnectedAccounts({
   onConnectClick,
   googleAuth,
   facebookAuth,
+  onInstagramConnectError,
 }) {
   const [calendarName, setCalendarName] = useState(null);
+  const [instagramConnecting, setInstagramConnecting] = useState(false);
+  const [instagramConfigError, setInstagramConfigError] = useState(false);
   const isGoogleConnected = googleAuth?.isConnected;
   const calendarId = googleAuth?.calendarId;
   const isInstagramConnected = facebookAuth?.isConnected;
@@ -55,6 +58,25 @@ export default function ConnectedAccounts({
     return { status: "none", detail: "Not selected", canClick: false };
   };
 
+  const handleInstagramConnect = async () => {
+    if (!facebookAuth?.connect) {
+      onInstagramConnectError?.("Connect not available. Try refreshing.");
+      return;
+    }
+    setInstagramConnecting(true);
+    setInstagramConfigError(false);
+    try {
+      await facebookAuth.connect();
+    } catch (err) {
+      setInstagramConnecting(false);
+      const msg = err?.message || "Could not start Instagram connect.";
+      if (msg.toLowerCase().includes("not configured") || msg.includes("META_APP_ID") || msg.includes("500")) {
+        setInstagramConfigError(true);
+      }
+      onInstagramConnectError?.(msg);
+    }
+  };
+
   return (
     <div style={{ ...STYLES.card, padding: 28, marginBottom: 20 }}>
       <h3
@@ -89,24 +111,62 @@ export default function ConnectedAccounts({
               </span>
             )}
             {status === "ready" && (
-              <div
-                style={{
-                  padding: "5px 14px",
-                  borderRadius: 50,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  background: "rgba(232,185,49,0.12)",
-                  color: "#E8B931",
-                  cursor: "pointer",
-                }}
-                onClick={() => {
-                  if (isCalendar && googleAuth?.connect) return googleAuth.connect();
-                  if (acct.statusKey === "instagram" && facebookAuth?.connect) return facebookAuth.connect();
-                  onConnectClick?.(platformName);
-                }}
-              >
-                Connect →
-              </div>
+              isCalendar ? (
+                <button
+                  type="button"
+                  onClick={() => googleAuth?.connect?.()}
+                  style={{
+                    padding: "5px 14px",
+                    borderRadius: 50,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    background: "rgba(232,185,49,0.12)",
+                    color: "#E8B931",
+                    cursor: "pointer",
+                    border: "none",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  Connect →
+                </button>
+              ) : acct.statusKey === "instagram" ? (
+                <button
+                  type="button"
+                  disabled={instagramConnecting}
+                  onClick={handleInstagramConnect}
+                  style={{
+                    padding: "5px 14px",
+                    borderRadius: 50,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    background: instagramConnecting ? "rgba(255,255,255,0.08)" : "rgba(232,185,49,0.12)",
+                    color: "#E8B931",
+                    cursor: instagramConnecting ? "not-allowed" : "pointer",
+                    border: "none",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {instagramConnecting ? "Redirecting…" : "Connect →"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onConnectClick?.(platformName)}
+                  style={{
+                    padding: "5px 14px",
+                    borderRadius: 50,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    background: "rgba(232,185,49,0.12)",
+                    color: "#E8B931",
+                    cursor: "pointer",
+                    border: "none",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  Connect →
+                </button>
+              )
             )}
             {status === "none" && (
               <span
@@ -178,6 +238,11 @@ export default function ConnectedAccounts({
               <div>
                 <div style={{ fontSize: 14, fontWeight: 500 }}>{acct.name}</div>
                 <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{detail}</div>
+                {acct.statusKey === "instagram" && instagramConfigError && (
+                  <div style={{ fontSize: 11, color: "rgba(232,93,49,0.9)", marginTop: 4 }}>
+                    Instagram auth isn't configured (META_APP_ID / META_REDIRECT_URI missing).
+                  </div>
+                )}
               </div>
             </div>
             {badge}

@@ -338,6 +338,7 @@ export default function PostPilot() {
             ...connectedPlatforms.filter((p) => p !== "Google Calendar" && p !== "Instagram"),
           ]}
           onConnectClick={setConnectModalPlatform}
+          onInstagramConnectError={setToastMessage}
           googleAuth={googleAuth}
           facebookAuth={facebookAuth}
         />
@@ -349,6 +350,7 @@ export default function PostPilot() {
             onSuccess={handlePlatformConnect}
           />
         )}
+        <Toast message={toastMessage} visible={!!toastMessage} onHide={() => setToastMessage(null)} />
       </>
     );
   }

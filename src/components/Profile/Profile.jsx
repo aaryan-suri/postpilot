@@ -17,6 +17,7 @@ export default function Profile({
   onBack,
   connectedPlatforms = [],
   onConnectClick,
+  onInstagramConnectError,
   googleAuth,
   facebookAuth,
 }) {
@@ -199,6 +200,7 @@ export default function Profile({
           platforms={platforms}
           connectedPlatforms={connectedPlatforms}
           onConnectClick={onConnectClick}
+          onInstagramConnectError={onInstagramConnectError}
           googleAuth={googleAuth}
           facebookAuth={facebookAuth}
         />

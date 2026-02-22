@@ -43,6 +43,14 @@ npm run dev
 4. Profile → Connected Accounts → Connect Instagram → authorize with Facebook; you’ll be redirected back to the app.
 5. Generate content for an event, approve an Instagram post, open Dashboard → Content Queue, and click **Post to Instagram**.
 
+### Testing the Connect Instagram button
+
+1. Run the full app: `npx vercel dev` and open **http://localhost:3000** (not 5173).
+2. Complete onboarding if needed, then go to **Profile** → **Connected Accounts**.
+3. Click **Connect →** next to Instagram.
+4. **If configured:** You should be redirected to Meta/Facebook to authorize; after authorizing you return to the app with Instagram connected.
+5. **If not configured:** A toast appears with a message like “Instagram auth isn’t configured (META_APP_ID / META_REDIRECT_URI missing).” Add those env vars to `.env` and restart.
+
 ## 🌐 Deploy to Vercel (Free)
 
 This is the easiest way to get a public URL for judges/demos.

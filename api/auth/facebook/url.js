@@ -9,7 +9,10 @@ export default async function handler(req, res) {
 
   if (!appId || !redirectUri) {
     console.error("Meta OAuth env vars missing (META_APP_ID, META_REDIRECT_URI)");
-    return res.status(500).json({ error: "OAuth not configured" });
+    return res.status(500).json({
+      error: "OAuth not configured",
+      message: "Instagram auth isn't configured (META_APP_ID / META_REDIRECT_URI missing).",
+    });
   }
 
   const scopes = [
