@@ -5,18 +5,11 @@ import GradientButton from "../components/shared/GradientButton";
 
 const OPENINGS = [
   {
-    title: "Product Engineer",
+    title: "Frontend Developer",
     team: "Engineering",
-    type: "Full-time",
-    location: "Remote",
-    desc: "Help build and scale PostPilot. You'll work on the product, AI integrations, and infrastructure that powers social media automation for thousands of student orgs.",
-  },
-  {
-    title: "Campus Partnerships",
-    team: "Growth",
-    type: "Part-time / Intern",
-    location: "UMD and remote",
-    desc: "Bring PostPilot to student orgs at your campus. Work with club leaders, run demos, and grow our community. Great for students interested in startups and marketing.",
+    type: "Part-time",
+    location: "In-person (UMD)",
+    desc: "Build and polish the PostPilot web app. You'll work on React components, UI/UX, and the dashboard that student orgs use daily. Must be a current UMD student. In-person work required.",
   },
 ];
 
