@@ -56,7 +56,7 @@ export default function TermsPage() {
         </Section>
         <Section title="9. Contact">
           Questions? Contact us at{" "}
-          <a href="mailto:legal@postpilot.app" style={{ color: "#E85D31", textDecoration: "none" }}>legal@postpilot.app</a>.
+          <a href="mailto:legal@postpilot.company" style={{ color: "#E85D31", textDecoration: "none" }}>legal@postpilot.company</a>.
         </Section>
       </div>
     </div>

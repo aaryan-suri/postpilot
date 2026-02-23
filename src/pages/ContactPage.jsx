@@ -46,14 +46,14 @@ export default function ContactPage() {
       <div style={{ marginBottom: 48 }}>
         <div style={{ marginBottom: 16 }}>
           <span style={{ ...STYLES.sub, marginRight: 8 }}>Email:</span>
-          <a href="mailto:hello@postpilot.app" style={{ color: "#E85D31", textDecoration: "none", fontWeight: 500 }}>
-            hello@postpilot.app
+          <a href="mailto:hello@postpilot.company" style={{ color: "#E85D31", textDecoration: "none", fontWeight: 500 }}>
+            hello@postpilot.company
           </a>
         </div>
         <div>
           <span style={{ ...STYLES.sub, marginRight: 8 }}>For support or partnerships:</span>
-          <a href="mailto:support@postpilot.app" style={{ color: "#E85D31", textDecoration: "none", fontWeight: 500 }}>
-            support@postpilot.app
+          <a href="mailto:support@postpilot.company" style={{ color: "#E85D31", textDecoration: "none", fontWeight: 500 }}>
+            support@postpilot.company
           </a>
         </div>
       </div>

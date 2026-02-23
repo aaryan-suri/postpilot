@@ -50,7 +50,7 @@ export default function PrivacyPage() {
         </Section>
         <Section title="7. Contact">
           Questions about this policy? Contact us at{" "}
-          <a href="mailto:privacy@postpilot.app" style={{ color: "#E85D31", textDecoration: "none" }}>privacy@postpilot.app</a>.
+          <a href="mailto:privacy@postpilot.company" style={{ color: "#E85D31", textDecoration: "none" }}>privacy@postpilot.company</a>.
         </Section>
       </div>
     </div>

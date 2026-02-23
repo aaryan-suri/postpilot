@@ -61,7 +61,7 @@ This is the easiest way to get a public URL for judges/demos.
 3. Click **"Add New Project"** → Import your repo
 4. Add your environment variables (at least `ANTHROPIC_API_KEY`; for Instagram add Meta + Blob vars — see table below).
 5. Click **Deploy**
-6. Done! You'll get a URL like `postpilot.vercel.app`
+6. Done! Add your custom domain (e.g. `postpilot.company`) in Vercel Settings → Domains
 
 ### Option B: Vercel CLI
 ```bash
@@ -176,7 +176,7 @@ To enable **Connect Instagram** and posting to Instagram:
 2. **Add OAuth redirect URI(s)**
    - Under **Valid OAuth Redirect URIs** add:
      - **Local:** `http://localhost:3000/api/auth/facebook/callback`
-     - **Production:** `https://<your-vercel-domain>/api/auth/facebook/callback` (e.g. `https://postpilot.vercel.app/api/auth/facebook/callback`)
+     - **Production:** `https://<your-vercel-domain>/api/auth/facebook/callback` (e.g. `https://postpilot.company/api/auth/facebook/callback`)
    - The Connect Instagram flow returns the exact callback URL in its response when env vars are missing; use that value in the Meta app.
 
 3. **Required permissions / scopes**
@@ -185,7 +185,7 @@ To enable **Connect Instagram** and posting to Instagram:
 4. **Required environment variables**
    - **`META_APP_ID`** — from Meta app dashboard → Settings → Basic.
    - **`META_APP_SECRET`** — from the same page (show and copy).
-   - **`FRONTEND_URL`** (optional but recommended) — e.g. `https://your-app.vercel.app` or `http://localhost:3000`. Used to derive the OAuth callback URL if `META_REDIRECT_URI` is not set.
+   - **`FRONTEND_URL`** (optional but recommended) — e.g. `https://postpilot.company` or `http://localhost:3000`. Used to derive the OAuth callback URL if `META_REDIRECT_URI` is not set.
    - **`META_REDIRECT_URI`** (optional if derived) — set to the exact callback URL if you don’t use `FRONTEND_URL`/`VERCEL_URL`. Otherwise the app derives it as `{FRONTEND_URL or https://VERCEL_URL or http://localhost:3000}/api/auth/facebook/callback`.
 
 5. **Vercel**
@@ -206,7 +206,7 @@ If something is misconfigured, **Connect Instagram** shows which keys are missin
 | `GOOGLE_REDIRECT_URI` | OAuth callback URL (e.g. `http://localhost:3000/api/auth/callback` for local) | For Calendar sync |
 | `META_APP_ID` | Meta/Facebook app ID | For Instagram publishing |
 | `META_APP_SECRET` | Meta/Facebook app secret | For Instagram publishing |
-| `FRONTEND_URL` | App base URL (e.g. `https://your-app.vercel.app` or `http://localhost:3000`); used to derive OAuth callback if `META_REDIRECT_URI` not set | Optional (recommended) |
+| `FRONTEND_URL` | App base URL (e.g. `https://postpilot.company` or `http://localhost:3000`); used to derive OAuth callback if `META_REDIRECT_URI` not set | Optional (recommended) |
 | `META_REDIRECT_URI` | OAuth callback (e.g. `http://localhost:3000/api/auth/facebook/callback`). Optional if `FRONTEND_URL` or `VERCEL_URL` is set — then derived as `{base}/api/auth/facebook/callback` | Optional when derived |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob token (auto-set when you add a Blob store to the project) | For image upload → Instagram |
 

@@ -83,8 +83,8 @@ export default function CareersPage() {
       </div>
       <p style={{ ...STYLES.sub, marginBottom: 24 }}>
         Don't see a fit? We're always open to meeting talented people. Reach out at{" "}
-        <a href="mailto:careers@postpilot.app" style={{ color: "#E85D31", textDecoration: "none" }}>
-          careers@postpilot.app
+        <a href="mailto:careers@postpilot.company" style={{ color: "#E85D31", textDecoration: "none" }}>
+          careers@postpilot.company
         </a>
       </p>
       <GradientButton onClick={() => navigate("/contact")} size="md" withArrow>
