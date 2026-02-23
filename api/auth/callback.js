@@ -29,14 +29,14 @@ export default async function handler(req, res) {
       return res.redirect("/?auth_error=no_token");
     }
 
-    // Redirect to frontend with tokens in URL (MVP — migrate to httpOnly cookies later)
+    // Redirect to frontend app (onboard) with tokens in URL (MVP — migrate to httpOnly cookies later)
     const base =
       process.env.FRONTEND_URL || new URL(redirectUri).origin;
     const params = new URLSearchParams({
       access_token,
       ...(refresh_token && { refresh_token }),
     });
-    return res.redirect(302, `${base}/?${params.toString()}`);
+    return res.redirect(302, `${base}/onboard?${params.toString()}`);
   } catch (error) {
     console.error("OAuth callback error:", error);
     return res.redirect("/?auth_error=exchange_failed");
