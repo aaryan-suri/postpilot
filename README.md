@@ -39,7 +39,7 @@ npm run dev
 
 1. Run the full app: `npx vercel dev` and open **http://localhost:3000** (not 5173).
 2. Complete **Instagram Setup** (see below): create Meta app, add redirect URI, set env vars.
-3. For local dev the callback URL is `http://localhost:3000/api/auth/facebook/callback`. You can confirm it by opening `http://localhost:3000/api/auth/facebook/redirect-uri` and copying the value into your Meta app.
+3. For local dev the callback URL is `http://localhost:3000/api/auth/facebook/callback`. The Connect Instagram flow will show the exact redirect URI to add in the Meta app if not configured.
 4. Profile → Connected Accounts → Connect Instagram → authorize with Facebook; you’ll be redirected back to the app.
 5. Generate content for an event, approve an Instagram post, open Dashboard → Content Queue, and click **Post to Instagram**.
 
@@ -90,7 +90,7 @@ postpilot/
 │   └── auth/
 │       ├── url.js, callback.js, refresh.js       # Google OAuth
 │       └── facebook/
-│           ├── url.js, callback.js, refresh.js, redirectUri.js, redirect-uri.js   # Meta OAuth for Instagram
+│           ├── url.js, callback.js, refresh.js, redirectUri.js   # Meta OAuth for Instagram
 ├── public/                 # Static assets
 ├── src/
 │   ├── main.jsx           # React entry point
@@ -177,7 +177,7 @@ To enable **Connect Instagram** and posting to Instagram:
    - Under **Valid OAuth Redirect URIs** add:
      - **Local:** `http://localhost:3000/api/auth/facebook/callback`
      - **Production:** `https://<your-vercel-domain>/api/auth/facebook/callback` (e.g. `https://postpilot.vercel.app/api/auth/facebook/callback`)
-   - You can get the exact callback URL for your environment by opening `/api/auth/facebook/redirect-uri` in the browser (e.g. `http://localhost:3000/api/auth/facebook/redirect-uri` when running `npx vercel dev`).
+   - The Connect Instagram flow returns the exact callback URL in its response when env vars are missing; use that value in the Meta app.
 
 3. **Required permissions / scopes**
    - The app requests: `pages_show_list`, `pages_read_engagement`, `instagram_basic`, `instagram_content_publish`. Ensure your app has Instagram Graph API and Facebook Login enabled.
