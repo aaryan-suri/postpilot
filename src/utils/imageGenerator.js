@@ -4,6 +4,15 @@
 const IMAGE_CACHE = new Map();
 const CACHE_KEY_PREFIX = 'postpilot_img_';
 
+// Static event graphics (same as landing page) for demo/sample events
+const STATIC_EVENT_IMAGES = {
+  1: "/events/spring-gbm.png",
+  2: "/events/resume-workshop.png",
+  3: "/events/movie-night.png",
+  4: "/events/hackathon.png",
+  5: "/events/alumni-mixer.png",
+};
+
 // Generate a cache key from event data
 // Includes all properties that affect image rendering
 function getCacheKey(event, type = 'announcement', orgName = '') {
@@ -26,6 +35,11 @@ export function getEventImage(event, type = 'announcement', orgName = '') {
   }
   if (!event || typeof event !== 'object') {
     return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjgwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iODAwIiBoZWlnaHQ9IjgwMCIgZmlsbD0iIzBBMEEwQiIvPjwvc3ZnPg==';
+  }
+  // Use static landing-page graphics for demo/sample events (ids 1–5)
+  const eventId = typeof event.id === 'number' ? event.id : parseInt(event.id, 10);
+  if (STATIC_EVENT_IMAGES[eventId]) {
+    return STATIC_EVENT_IMAGES[eventId];
   }
   const cacheKey = getCacheKey(event, type, orgName);
   
