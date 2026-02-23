@@ -34,6 +34,7 @@ export default function App() {
         <Route path="/contact" element={<MarketingLayout><ContactPage /></MarketingLayout>} />
         <Route path="/careers" element={<MarketingLayout><CareersPage /></MarketingLayout>} />
         <Route path="/privacy" element={<MarketingLayout><PrivacyPage /></MarketingLayout>} />
+        <Route path="/privacy-policy" element={<MarketingLayout><PrivacyPage /></MarketingLayout>} />
         <Route path="/terms" element={<MarketingLayout><TermsPage /></MarketingLayout>} />
         <Route path="/onboard" element={<PostPilot initialScreen="onboard" />} />
       </Routes>

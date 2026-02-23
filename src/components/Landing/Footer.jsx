@@ -13,7 +13,7 @@ const FOOTER_LINKS = {
     { label: "Careers", path: "/careers" },
   ],
   Legal: [
-    { label: "Privacy Policy", path: "/privacy" },
+    { label: "Privacy Policy", path: "/privacy-policy" },
     { label: "Terms of Service", path: "/terms" },
   ],
 };
