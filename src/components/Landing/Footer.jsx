@@ -1,19 +1,20 @@
 import React from "react";
+import { Link, useLocation } from "react-router-dom";
 
 const FOOTER_LINKS = {
   Product: [
-    { label: "Features", href: "#" },
-    { label: "Pricing", href: "#" },
-    { label: "Demo", href: "#" },
+    { label: "Features", path: "/features" },
+    { label: "Pricing", path: "/pricing" },
+    { label: "Demo", path: "/demo" },
   ],
   Company: [
-    { label: "About", href: "#" },
-    { label: "Contact", href: "#" },
-    { label: "Careers", href: "#" },
+    { label: "About", path: "/about" },
+    { label: "Contact", path: "/contact" },
+    { label: "Careers", path: "/careers" },
   ],
   Legal: [
-    { label: "Privacy Policy", href: "#" },
-    { label: "Terms of Service", href: "#" },
+    { label: "Privacy Policy", path: "/privacy" },
+    { label: "Terms of Service", path: "/terms" },
   ],
 };
 
@@ -24,6 +25,7 @@ const SOCIAL_ICONS = [
 ];
 
 export default function Footer() {
+  const location = useLocation();
   return (
     <footer
       style={{
@@ -63,6 +65,8 @@ export default function Footer() {
               <a
                 key={s.label}
                 href={s.href}
+                target="_blank"
+                rel="noopener noreferrer"
                 aria-label={s.label}
                 style={{
                   fontSize: 18,
@@ -98,23 +102,23 @@ export default function Footer() {
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
               {links.map((link) => (
                 <li key={link.label} style={{ marginBottom: 10 }}>
-                  <a
-                    href={link.href}
+                  <Link
+                    to={link.path}
                     style={{
                       fontSize: 13,
-                      color: "rgba(255,255,255,0.45)",
+                      color: location.pathname === link.path ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.45)",
                       textDecoration: "none",
                       transition: "color 0.2s",
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.color = "rgba(255,255,255,0.75)";
+                      if (location.pathname !== link.path) e.currentTarget.style.color = "rgba(255,255,255,0.75)";
                     }}
                     onMouseOut={(e) => {
-                      e.currentTarget.style.color = "rgba(255,255,255,0.45)";
+                      if (location.pathname !== link.path) e.currentTarget.style.color = "rgba(255,255,255,0.45)";
                     }}
                   >
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>

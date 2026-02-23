@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { generateSmartContent } from "./utils/contentEngine";
 import { useGoogleAuth } from "./hooks/useGoogleAuth";
 import { useFacebookAuth } from "./hooks/useFacebookAuth";
@@ -19,7 +20,8 @@ const SAMPLE_EVENTS = [
   { id: 5, title: "Alumni Networking Mixer", date: "2026-03-08", time: "4:00 PM", location: "Riggs Alumni Center", description: "Connect with alumni working in tech, finance, and consulting. Business casual attire.", type: "networking" },
 ];
 
-export default function PostPilot() {
+export default function PostPilot({ initialScreen = "landing" }) {
+  const navigate = useNavigate();
   const [pendingAuthRedirect, setPendingAuthRedirect] = useState(false);
   const handleTokensReceived = useCallback(() => setPendingAuthRedirect(true), []);
   const googleAuth = useGoogleAuth(handleTokensReceived);
@@ -28,8 +30,8 @@ export default function PostPilot() {
 
   const isDemoMode = !googleCalendarConnected;
 
-  const [screen, setScreen] = useState("landing");
-  const [screenHistory, setScreenHistory] = useState(["landing"]);
+  const [screen, setScreen] = useState(initialScreen);
+  const [screenHistory, setScreenHistory] = useState([initialScreen]);
   const [orgName, setOrgName] = useState("");
   const [orgDesc, setOrgDesc] = useState("");
   const [tone, setTone] = useState("");
@@ -153,6 +155,8 @@ export default function PostPilot() {
       h.pop();
       setScreenHistory(h);
       setScreen(h[h.length - 1]);
+    } else if (screen === "onboard") {
+      navigate("/");
     }
   };
 
@@ -297,7 +301,7 @@ export default function PostPilot() {
   if (screen === "landing") {
     return (
       <div style={{ animation: "screen-fade 0.35s ease-out" }}>
-        <Landing onGetStarted={() => navigateTo("onboard")} />
+        <Landing onGetStarted={() => navigate("/onboard")} />
       </div>
     );
   }

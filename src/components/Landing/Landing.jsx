@@ -13,7 +13,7 @@ import FinalCTASection from "./FinalCTASection";
 import Footer from "./Footer";
 import GradientButton from "../shared/GradientButton";
 
-export default function Landing({ onGetStarted }) {
+export default function Landing({ onGetStarted, onLogoClick }) {
   const [visibleSections, setVisibleSections] = useState({ hero: true });
   const [scrolled, setScrolled] = useState(false);
   const sectionRefs = useRef({});
@@ -80,7 +80,7 @@ export default function Landing({ onGetStarted }) {
       />
       
       <Navbar
-        onLogoClick={() => {}}
+        onLogoClick={onLogoClick || (() => {})}
         showBack={false}
         scrolled={scrolled}
         rightContent={
