@@ -171,7 +171,17 @@ export default function Onboarding({
                   onClick={async () => {
                     setConnectError(null);
                     try {
-                      if (connect) await connect();
+                      if (connect) {
+                        try {
+                          sessionStorage.setItem(
+                            "pp_onboard_state",
+                            JSON.stringify({ orgName, orgDesc, tone, platforms })
+                          );
+                        } catch (e) {
+                          /* ignore */
+                        }
+                        await connect();
+                      }
                     } catch (err) {
                       setConnectError(err?.message || "Connect failed");
                     }

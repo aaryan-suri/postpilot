@@ -62,6 +62,23 @@ export default function PostPilot({ initialScreen = "landing" }) {
     return () => { isMountedRef.current = false; };
   }, []);
 
+  // Restore onboarding state when returning from OAuth (saved before redirect)
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem("pp_onboard_state");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.orgName != null) setOrgName(parsed.orgName);
+        if (parsed.orgDesc != null) setOrgDesc(parsed.orgDesc);
+        if (parsed.tone != null) setTone(parsed.tone);
+        if (Array.isArray(parsed.platforms)) setPlatforms(parsed.platforms);
+        sessionStorage.removeItem("pp_onboard_state");
+      }
+    } catch (e) {
+      /* ignore */
+    }
+  }, []);
+
   // When returning from OAuth, go to onboarding to pick calendar
   useEffect(() => {
     if (pendingAuthRedirect && screen === "landing") {
