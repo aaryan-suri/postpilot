@@ -1,6 +1,6 @@
-// Shared analytics storage layer used by /api/analytics routes.
-// Chooses Vercel KV when configured, Supabase Postgres when available,
-// and falls back to a JSON file in local development.
+// Analytics storage and validation (shared by API handlers).
+// IMPORTANT: This file intentionally lives outside `/api` so it does NOT count
+// toward Vercel Hobby plan serverless function limits.
 
 import { kv } from "@vercel/kv";
 import fs from "fs/promises";
@@ -51,14 +51,7 @@ export function validateAnalyticsEvent(input) {
     return { ok: false, errors: ["Body must be a JSON object."] };
   }
 
-  const {
-    orgId,
-    sessionId,
-    userId = null,
-    type,
-    timestamp,
-    payload,
-  } = input;
+  const { orgId, sessionId, userId = null, type, timestamp, payload } = input;
 
   const normalizedOrgId = getOrgId(orgId);
 
@@ -66,9 +59,7 @@ export function validateAnalyticsEvent(input) {
     errors.push("sessionId (string) is required.");
   }
   if (!type || typeof type !== "string" || !EVENT_TYPES.has(type)) {
-    errors.push(
-      `type must be one of: ${Array.from(EVENT_TYPES).join(", ")}.`
-    );
+    errors.push(`type must be one of: ${Array.from(EVENT_TYPES).join(", ")}.`);
   }
   if (!timestamp || typeof timestamp !== "string") {
     errors.push("timestamp (ISO string) is required.");
@@ -109,7 +100,6 @@ function getDateRangeFilter(fromIso, toIso) {
 }
 
 function getFilePath() {
-  // Store under a .data folder at the project root when running locally.
   const root = process.cwd();
   return path.join(root, ".data", "analytics-events.json");
 }
@@ -167,8 +157,7 @@ async function fileBackendGetEvents(orgId, fromIso, toIso, limit) {
 
 async function kvAppend(event) {
   const key = `analytics:${event.orgId}:events`;
-  const json = JSON.stringify(event);
-  await kv.lpush(key, json);
+  await kv.lpush(key, JSON.stringify(event));
   await kv.ltrim(key, 0, MAX_EVENTS_PER_ORG - 1);
 }
 
@@ -210,7 +199,9 @@ async function supabaseAppend(event) {
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`Supabase insert failed (${res.status}): ${text || res.statusText}`);
+    throw new Error(
+      `Supabase insert failed (${res.status}): ${text || res.statusText}`
+    );
   }
 }
 
@@ -226,11 +217,10 @@ async function supabaseGetEvents(orgId, fromIso, toIso, limit) {
   if (fromIso) params.set("timestamp", `gte.${fromIso}`);
   if (toIso) params.append("timestamp", `lte.${toIso}`);
   params.set("order", "timestamp.asc");
-  if (typeof limit === "number" && limit > 0) {
-    params.set("limit", String(limit));
-  } else {
-    params.set("limit", String(MAX_EVENTS_PER_ORG));
-  }
+  params.set(
+    "limit",
+    String(typeof limit === "number" && limit > 0 ? limit : MAX_EVENTS_PER_ORG)
+  );
 
   const res = await fetch(`${url}/rest/v1/analytics_events?${params.toString()}`, {
     headers: {
@@ -240,7 +230,9 @@ async function supabaseGetEvents(orgId, fromIso, toIso, limit) {
   });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`Supabase fetch failed (${res.status}): ${text || res.statusText}`);
+    throw new Error(
+      `Supabase fetch failed (${res.status}): ${text || res.statusText}`
+    );
   }
   const data = await res.json();
   if (!Array.isArray(data)) return [];
@@ -268,25 +260,17 @@ async function memoryGetEvents(orgId, fromIso, toIso, limit) {
 }
 
 export async function appendAnalyticsEvent(event) {
-  const backend = BACKEND;
-  if (backend === "kv") return kvAppend(event);
-  if (backend === "supabase") return supabaseAppend(event);
-  if (backend === "file") return fileBackendAppend(event);
+  if (BACKEND === "kv") return kvAppend(event);
+  if (BACKEND === "supabase") return supabaseAppend(event);
+  if (BACKEND === "file") return fileBackendAppend(event);
   return memoryAppend(event);
 }
 
 export async function getAnalyticsEvents({ orgId, from, to, limit }) {
-  const backend = BACKEND;
   const normalizedOrgId = getOrgId(orgId);
-  if (backend === "kv") {
-    return kvGetEvents(normalizedOrgId, from, to, limit);
-  }
-  if (backend === "supabase") {
-    return supabaseGetEvents(normalizedOrgId, from, to, limit);
-  }
-  if (backend === "file") {
-    return fileBackendGetEvents(normalizedOrgId, from, to, limit);
-  }
+  if (BACKEND === "kv") return kvGetEvents(normalizedOrgId, from, to, limit);
+  if (BACKEND === "supabase") return supabaseGetEvents(normalizedOrgId, from, to, limit);
+  if (BACKEND === "file") return fileBackendGetEvents(normalizedOrgId, from, to, limit);
   return memoryGetEvents(normalizedOrgId, from, to, limit);
 }
 

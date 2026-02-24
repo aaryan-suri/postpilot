@@ -87,11 +87,6 @@ postpilot/
 │   ├── upload-image.js    # Upload data URL → Vercel Blob (public URL for IG)
 │   ├── instagram/
 │   │   └── publish.js     # Create IG media container + publish
-│   ├── analytics/
-│   │   ├── store.js       # Shared analytics storage (KV / Supabase / JSON dev)
-│   │   ├── track.js       # POST /api/analytics/track  (append events)
-│   │   ├── summary.js     # GET  /api/analytics/summary (daily rollups + KPIs)
-│   │   └── events.js      # GET  /api/analytics/events  (dev-only debug)
 │   └── auth/
 │       ├── url.js, callback.js, refresh.js       # Google OAuth
 │       └── facebook/
@@ -103,6 +98,8 @@ postpilot/
 │   ├── PostPilot.jsx      # Main application component
 │   └── lib/
 │       └── analytics.js   # Frontend analytics helper (session + track)
+├── server/
+│   └── analyticsStore.js  # Analytics storage (KV / Supabase / JSON dev)
 ├── .env.example           # Environment variable template
 ├── .gitignore
 ├── index.html             # HTML entry point
@@ -224,6 +221,7 @@ If something is misconfigured, **Connect Instagram** shows which keys are missin
 ### Analytics: how it works
 
 - **Client-side tracking:** The browser generates a short-lived `sessionId` stored in `sessionStorage` (no analytics data is stored in `localStorage`). The helper in `src/lib/analytics.js` sends small JSON events to `POST /api/analytics/track`.
+- **Hobby plan deployment note:** Vercel Hobby plan limits deployments to **12 serverless functions**. To avoid adding new functions, `/api/analytics/*` is handled via a rewrite to the existing `/api/generate` function (see `vercel.json`). Analytics storage/aggregation code lives in `server/analyticsStore.js` (outside `/api` so it doesn't count as a function).
 - **Events captured:** The app records:
   - Event ingestion (`event_ingested`) for Google Calendar sync and demo events
   - Manual event creation (`event_added_manual`)
