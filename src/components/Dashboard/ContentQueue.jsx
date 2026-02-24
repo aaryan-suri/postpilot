@@ -3,6 +3,7 @@ import { STYLES, TYPE_COLORS } from "../../utils/styles";
 import { getPlatformIcon } from "../shared/PlatformIcon";
 import { useEventImage } from "../../hooks/useEventImage";
 import { getEventImageSrc } from "../../utils/eventImageService";
+import { track } from "../../lib/analytics";
 
 export default function ContentQueue({
   queue,
@@ -50,6 +51,18 @@ export default function ContentQueue({
       setErrorMessage(null);
       updateItemStatus(index, "posting");
 
+      const publishStartedAt = new Date().toISOString();
+      try {
+        track("publish_attempted", {
+          platform: "instagram",
+          eventId: item.eventId,
+          approvedAt: item.approvedAt,
+          publishStartedAt,
+        });
+      } catch {
+        // ignore analytics errors
+      }
+
       try {
         let dataUrl = imageSrcFromHook;
 
@@ -95,10 +108,33 @@ export default function ContentQueue({
         }
 
         updateItemStatus(index, "posted");
+        try {
+          const publishedAt = new Date().toISOString();
+          track("publish_succeeded", {
+            platform: "instagram",
+            eventId: item.eventId,
+            approvedAt: item.approvedAt,
+            publishedAt,
+          });
+        } catch {
+          // ignore analytics errors
+        }
       } catch (err) {
         const msg = err.message || "Post to Instagram failed.";
         updateItemStatus(index, "failed", msg);
         setErrorMessage(msg);
+        try {
+          const failedAt = new Date().toISOString();
+          track("publish_failed", {
+            platform: "instagram",
+            eventId: item.eventId,
+            approvedAt: item.approvedAt,
+            publishedAt: failedAt,
+            errorCode: err.message,
+          });
+        } catch {
+          // ignore analytics errors
+        }
       }
     },
     [queue, events, orgName, updateItemStatus]

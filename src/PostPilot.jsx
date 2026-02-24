@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { generateSmartContent } from "./utils/contentEngine";
 import { useGoogleAuth } from "./hooks/useGoogleAuth";
 import { useFacebookAuth } from "./hooks/useFacebookAuth";
+import { track } from "./lib/analytics";
 
 import Landing from "./components/Landing/Landing";
 import Onboarding from "./components/Onboarding/Onboarding";
@@ -57,6 +58,7 @@ export default function PostPilot({ initialScreen = "landing" }) {
   const [toastMessage, setToastMessage] = useState(null);
   const isMountedRef = useRef(true);
   const fetchIdRef = useRef(0);
+  const demoIngestTrackedRef = useRef(false);
 
   useEffect(() => {
     return () => { isMountedRef.current = false; };
@@ -124,6 +126,14 @@ export default function PostPilot({ initialScreen = "landing" }) {
         if (isMountedRef.current && id === fetchIdRef.current) {
           setEvents(data.events);
           setEventsLastSynced(new Date());
+          try {
+            track("event_ingested", {
+              calendarSource: "google",
+              count: Array.isArray(data.events) ? data.events.length : 0,
+            });
+          } catch {
+            // ignore analytics errors
+          }
         }
       } else if (res.status === 401) {
         if (isMountedRef.current && id === fetchIdRef.current) setEvents([]);
@@ -158,6 +168,17 @@ export default function PostPilot({ initialScreen = "landing" }) {
       setEvents([...SAMPLE_EVENTS, ...demoEvents]);
       setEventsError(null);
       setEventsLastSynced(null);
+      if (!demoIngestTrackedRef.current) {
+        demoIngestTrackedRef.current = true;
+        try {
+          track("event_ingested", {
+            calendarSource: "demo",
+            count: SAMPLE_EVENTS.length,
+          });
+        } catch {
+          // ignore analytics errors
+        }
+      }
     }
   }, [screen, googleCalendarConnected, calendarId, fetchEvents, demoEvents]);
 
@@ -189,6 +210,14 @@ export default function PostPilot({ initialScreen = "landing" }) {
 
       setEvents((prev) => [...prev, createdEvent]);
 
+      try {
+        track("event_added_manual", {
+          eventId: createdEvent.id,
+        });
+      } catch {
+        // ignore analytics errors
+      }
+
       if (isDemoMode) {
         setDemoEvents((prev) => [...prev, createdEvent]);
       }
@@ -218,6 +247,7 @@ export default function PostPilot({ initialScreen = "landing" }) {
       { pct: 95, delay: 400 },
     ];
     let apiSuccess = false;
+    const generatedAt = new Date().toISOString();
 
     const progressPromise = (async () => {
       for (const s of steps) {
@@ -247,8 +277,32 @@ export default function PostPilot({ initialScreen = "landing" }) {
           const parsed = JSON.parse(text.replace(/```json|```/g, "").trim());
           const posts = Array.isArray(parsed?.posts) ? parsed.posts : null;
           if (posts && posts.length > 0 && isMountedRef.current) {
-            setGeneratedPosts((prev) => ({ ...prev, [event.id]: posts }));
+            const postsWithMeta = posts.map((p) => ({
+              ...p,
+              generatedAt,
+            }));
+            setGeneratedPosts((prev) => ({ ...prev, [event.id]: postsWithMeta }));
             apiSuccess = true;
+            try {
+              const totalChars = posts.reduce(
+                (sum, p) => sum + ((p.caption && p.caption.length) || 0),
+                0
+              );
+              const avgLength =
+                posts.length > 0 ? totalChars / posts.length : 0;
+              track("post_generated", {
+                eventId: event.id,
+                eventTitle: event.title,
+                platform: "instagram",
+                tone,
+                hasImage: false,
+                postLength: avgLength,
+                postsCount: posts.length,
+                generatedAt,
+              });
+            } catch {
+              // ignore analytics errors
+            }
           }
         } catch (parseErr) {
           console.warn("API returned invalid JSON structure, using fallback:", parseErr);
@@ -262,7 +316,31 @@ export default function PostPilot({ initialScreen = "landing" }) {
 
     if (!apiSuccess && isMountedRef.current) {
       const smartPosts = generateSmartContent(event, orgName, orgDesc, tone, platforms);
-      setGeneratedPosts((prev) => ({ ...prev, [event.id]: smartPosts }));
+      const smartWithMeta = smartPosts.map((p) => ({
+        ...p,
+        generatedAt,
+      }));
+      setGeneratedPosts((prev) => ({ ...prev, [event.id]: smartWithMeta }));
+      try {
+        const totalChars = smartPosts.reduce(
+          (sum, p) => sum + ((p.caption && p.caption.length) || 0),
+          0
+        );
+        const avgLength =
+          smartPosts.length > 0 ? totalChars / smartPosts.length : 0;
+        track("post_generated", {
+          eventId: event.id,
+          eventTitle: event.title,
+          platform: "instagram",
+          tone,
+          hasImage: false,
+          postLength: avgLength,
+          postsCount: smartPosts.length,
+          generatedAt,
+        });
+      } catch {
+        // ignore analytics errors
+      }
     }
 
     if (isMountedRef.current) setGenerationProgress(100);
@@ -299,9 +377,27 @@ export default function PostPilot({ initialScreen = "landing" }) {
     const already = approvedPosts.some((a) => a.eventId === eventId && a.caption === post.caption);
     if (!already) {
       const eventTitle = events.find((e) => e.id === eventId)?.title || "";
-      setApprovedPosts((prev) => [...prev, { ...post, eventId, eventTitle }]);
-      setContentQueue((prev) => [...prev, { ...post, eventId, eventTitle, status: "scheduled" }]);
+      const approvedAt = new Date().toISOString();
+      const approvedPost = { ...post, eventId, eventTitle, approvedAt };
+      setApprovedPosts((prev) => [...prev, approvedPost]);
+      setContentQueue((prev) => [...prev, { ...approvedPost, status: "scheduled" }]);
       setToastMessage("Post approved and queued!");
+      try {
+        const platform = (post.platform || "instagram").toLowerCase();
+        track("post_approved", {
+          eventId,
+          platform,
+          generatedAt: post.generatedAt,
+          approvedAt,
+        });
+        track("post_queued", {
+          eventId,
+          platform,
+          approvedAt,
+        });
+      } catch {
+        // ignore analytics errors
+      }
     }
   };
 

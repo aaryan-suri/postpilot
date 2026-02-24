@@ -87,6 +87,11 @@ postpilot/
 │   ├── upload-image.js    # Upload data URL → Vercel Blob (public URL for IG)
 │   ├── instagram/
 │   │   └── publish.js     # Create IG media container + publish
+│   ├── analytics/
+│   │   ├── store.js       # Shared analytics storage (KV / Supabase / JSON dev)
+│   │   ├── track.js       # POST /api/analytics/track  (append events)
+│   │   ├── summary.js     # GET  /api/analytics/summary (daily rollups + KPIs)
+│   │   └── events.js      # GET  /api/analytics/events  (dev-only debug)
 │   └── auth/
 │       ├── url.js, callback.js, refresh.js       # Google OAuth
 │       └── facebook/
@@ -95,7 +100,9 @@ postpilot/
 ├── src/
 │   ├── main.jsx           # React entry point
 │   ├── App.jsx            # App wrapper
-│   └── PostPilot.jsx      # Main application component
+│   ├── PostPilot.jsx      # Main application component
+│   └── lib/
+│       └── analytics.js   # Frontend analytics helper (session + track)
 ├── .env.example           # Environment variable template
 ├── .gitignore
 ├── index.html             # HTML entry point
@@ -156,7 +163,7 @@ git push origin your-name/what-youre-working-on
 - [ ] Real Google Calendar sync
 - [x] Instagram Graph API integration (auto-posting) — connect in Profile, post from Content Queue
 - [ ] Photo library with AI tagging
-- [ ] Analytics dashboard
+- [x] Analytics dashboard (events → posts → publishes)
 - [ ] Multi-org support
 - [ ] Campus context awareness (weather, academic calendar)
 
@@ -209,8 +216,68 @@ If something is misconfigured, **Connect Instagram** shows which keys are missin
 | `FRONTEND_URL` | App base URL (e.g. `https://postpilot.company` or `http://localhost:3000`); used to derive OAuth callback if `META_REDIRECT_URI` not set | Optional (recommended) |
 | `META_REDIRECT_URI` | OAuth callback (e.g. `http://localhost:3000/api/auth/facebook/callback`). Optional if `FRONTEND_URL` or `VERCEL_URL` is set — then derived as `{base}/api/auth/facebook/callback` | Optional when derived |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob token (auto-set when you add a Blob store to the project) | For image upload → Instagram |
+| `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Vercel KV / Upstash Redis connection (auto-set when you add a KV store) | For analytics events (preferred) |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Supabase Postgres REST endpoint and service role key | Optional fallback analytics store |
 
 **Instagram publishing:** Your Instagram account must be a **Business or Creator** account connected to a **Facebook Page**. See **Instagram Setup** above for step-by-step Meta app and env configuration.
+
+### Analytics: how it works
+
+- **Client-side tracking:** The browser generates a short-lived `sessionId` stored in `sessionStorage` (no analytics data is stored in `localStorage`). The helper in `src/lib/analytics.js` sends small JSON events to `POST /api/analytics/track`.
+- **Events captured:** The app records:
+  - Event ingestion (`event_ingested`) for Google Calendar sync and demo events
+  - Manual event creation (`event_added_manual`)
+  - Content lifecycle: `post_generated`, `post_approved`, `post_rejected` (future), `post_queued`
+  - Publishing lifecycle: `publish_attempted`, `publish_succeeded`, `publish_failed`
+  - Photo workflow: `photo_uploaded`, `photo_assigned`
+- **Server-side storage:** `/api/analytics/track` validates the payload and appends into an **append-only** `analytics_events` store:
+  - If **Vercel KV** env vars are present, events are stored as a Redis list per org (`analytics:{orgId}:events`, capped at 20k events).
+  - Otherwise, if **Supabase** env is present, events are written to an `analytics_events` Postgres table via the Supabase REST API.
+  - For local-only dev with no backing store, events are written to `.data/analytics-events.json` (not used in production).
+- **Aggregation on read:** `GET /api/analytics/summary` computes daily rollups on demand (no cron jobs) for a given window (`7d|30d|90d`):
+  - Generated / approved / published / failed publish counts
+  - Average **Generate → Approve** and **Approve → Publish** times (minutes)
+  - Event ingestion totals + breakdown (Google / demo / manual)
+  - Top events by posts generated and a simple platform breakdown.
+- **Analytics UI:** The **Analytics** tab in the dashboard calls `/api/analytics/summary` and renders:
+  - KPI cards for the metrics above
+  - A time series of generated / approved / published posts
+  - A bar chart of top events by generated posts
+  - A donut chart of platform mix (Instagram now, TikTok/X-ready)
+  - A recent activity feed (last ~20 analytics events).
+
+### Supabase schema (optional analytics DB)
+
+If you choose to back analytics with Supabase Postgres instead of Vercel KV, create the following table in your Supabase project:
+
+```sql
+create table if not exists public.analytics_events (
+  id uuid primary key default gen_random_uuid(),
+  orgId text not null,
+  sessionId text not null,
+  userId text null,
+  type text not null,
+  timestamp timestamptz not null,
+  payload jsonb not null default '{}'::jsonb
+);
+
+create index if not exists analytics_events_org_ts_idx
+  on public.analytics_events (orgId, timestamp desc);
+```
+
+Then set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in your environment. If both KV and Supabase are configured, **KV wins** for analytics storage.
+
+### Testing analytics locally
+
+1. Run `npx vercel dev` and open `http://localhost:3000`.
+2. From the dashboard:
+   - Use demo events or connect Google Calendar to ingest events.
+   - Generate content for an event, approve a post, and (optionally) publish to Instagram.
+   - Upload photos and tag them to events.
+3. Open the **Analytics** tab:
+   - Use the range selector (7d / 30d / 90d) to see rollups.
+   - In dev, click **Emit test event** to quickly verify that tracking and the backend pipeline are wired up.
+4. (Optional) For debugging, call `GET /api/analytics/events` in local dev — it returns the last ~500 raw analytics events. This route is **disabled in production**.
 
 ## Known limitations (MVP)
 

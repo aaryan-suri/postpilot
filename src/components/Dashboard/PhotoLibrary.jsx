@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { STYLES } from "../../utils/styles";
+import { track } from "../../lib/analytics";
 
 const ACCEPT_TYPES = "image/jpeg,image/jpg,image/png,image/webp";
 const MAX_SIZE_MB = 5;
@@ -178,6 +179,13 @@ export default function PhotoLibrary({ photos, events, onPhotosChange }) {
         done++;
         if (done === files.length) {
           onPhotosChange([...photos, ...results]);
+          try {
+            track("photo_uploaded", {
+              count: results.length,
+            });
+          } catch {
+            // ignore analytics errors
+          }
         }
       };
       reader.readAsDataURL(file);
@@ -203,6 +211,16 @@ export default function PhotoLibrary({ photos, events, onPhotosChange }) {
         p.id === photoId ? { ...p, tag: tagTitle, tagEventId: tagEventId ?? null } : p
       )
     );
+    if (tagEventId) {
+      try {
+        track("photo_assigned", {
+          photoId,
+          eventId: tagEventId,
+        });
+      } catch {
+        // ignore analytics errors
+      }
+    }
   };
 
   const handleRemove = (photoId) => {
