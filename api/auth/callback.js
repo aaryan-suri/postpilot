@@ -1,11 +1,11 @@
 // Vercel Serverless Function — exchanges auth code for tokens, redirects to frontend
 import { google } from "googleapis";
-import { kvGet, kvDel, kvKeys } from "../lib/kv.js";
+import { kvGet, kvDel, kvKeys } from "../server/kv.js";
 import {
   createSessionForEmail,
   setSessionCookie,
   getAppBaseUrl,
-} from "../lib/auth.js";
+} from "../server/auth.js";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
