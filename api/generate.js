@@ -16,14 +16,14 @@ import {
   kvSet,
   kvDel,
   kvKeys,
-} from "../server/kv.js";
+} from "./lib/kv.js";
 import {
   destroySession,
   getAppBaseUrl,
   loadUserAndOrgs,
   requireSession,
-} from "../server/auth.js";
-import { sendMagicLink } from "../server/email.js";
+} from "./lib/auth.js";
+import { sendMagicLink } from "./lib/email.js";
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const RATE_LIMIT_WINDOW_MS = 60_000;
