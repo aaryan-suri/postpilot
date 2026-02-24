@@ -11,19 +11,6 @@ import {
   getBackendType,
   validateAnalyticsEvent,
 } from "../server/analyticsStore.js";
-import {
-  kvGet,
-  kvSet,
-  kvDel,
-  kvKeys,
-} from "./lib/kv.js";
-import {
-  destroySession,
-  getAppBaseUrl,
-  loadUserAndOrgs,
-  requireSession,
-} from "./lib/auth.js";
-import { sendMagicLink } from "./lib/email.js";
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -356,311 +343,27 @@ async function handleAnalyticsEventsDebug(req, res) {
   }
 }
 
-// -------- Passwordless auth & org-scoped data ----------------
-
-async function handleAuthRequestLink(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  let body;
-  try {
-    body =
-      typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
-  } catch {
-    // Do not leak parsing failures; respond OK to avoid enumeration.
-    return res.status(200).json({ ok: true });
-  }
-
-  const rawEmail = body.email;
-  const email =
-    typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
-  if (!email) {
-    return res.status(200).json({ ok: true });
-  }
-
-  const rateKey = `ratelimit:magic:${email}`;
-  const existing = await kvGet(rateKey);
-  const now = Date.now();
-  if (existing && typeof existing.nextAllowedAt === "number") {
-    if (existing.nextAllowedAt > now) {
-      return res.status(200).json({ ok: true });
-    }
-  }
-  const nextAllowedAt = now + 60 * 1000;
-  await kvSet(rateKey, { nextAllowedAt }, { ex: 60 });
-
-  const token = makeId();
-  const magicKey = kvKeys.magicToken(token);
-  const createdAt = new Date().toISOString();
-  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
-
-  await kvSet(
-    magicKey,
-    {
-      email,
-      createdAt,
-      expiresAt,
-    },
-    { ex: 15 * 60 }
-  );
-
-  const base = getAppBaseUrl(req);
-  const url = `${base}/auth/callback?token=${encodeURIComponent(token)}`;
-  await sendMagicLink(email, url);
-
-  return res.status(200).json({ ok: true });
-}
-
-async function handleAuthLogout(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-  await destroySession(req, res);
-  return res.status(200).json({ ok: true });
-}
-
-async function handleMe(req, res) {
-  if (req.method !== "GET" && req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  const session = await requireSession(req, res);
-  if (!session) return;
-
-  const { user, orgs, activeOrgId } = await loadUserAndOrgs(session);
-
-  if (req.method === "POST") {
-    let body;
-    try {
-      body =
-        typeof req.body === "string"
-          ? JSON.parse(req.body || "{}")
-          : req.body || {};
-    } catch {
-      return res.status(400).json({ error: "Invalid JSON body" });
-    }
-    if (body && typeof body.activeOrgId === "string") {
-      const requestedOrgId = body.activeOrgId;
-      if (orgs.some((o) => o.id === requestedOrgId)) {
-        const userKey = kvKeys.userByEmail(user.email);
-        const updated = { ...user, activeOrgId: requestedOrgId };
-        await kvSet(userKey, updated);
-        const refreshed = await loadUserAndOrgs(session);
-        return res.status(200).json({
-          user: { id: refreshed.user.id, email: refreshed.user.email },
-          orgs: refreshed.orgs,
-          activeOrgId: refreshed.activeOrgId,
-        });
-      }
-    }
-  }
-
-  return res.status(200).json({
-    user: { id: user.id, email: user.email },
-    orgs,
-    activeOrgId,
-  });
-}
-
-async function handleOrgs(req, res) {
-  const session = await requireSession(req, res);
-  if (!session) return;
-
-  if (req.method === "GET") {
-    const { user, orgs, activeOrgId } = await loadUserAndOrgs(session);
-    return res.status(200).json({
-      user: { id: user.id, email: user.email },
-      orgsDetailed: await Promise.all(
-        orgs.map(async (o) => {
-          const org = await kvGet(kvKeys.org(o.id));
-          return org || null;
-        })
-      ).then((arr) => arr.filter(Boolean)),
-      activeOrgId,
-    });
-  }
-
-  if (req.method === "POST") {
-    let body;
-    try {
-      body =
-        typeof req.body === "string"
-          ? JSON.parse(req.body || "{}")
-          : req.body || {};
-    } catch {
-      return res.status(400).json({ error: "Invalid JSON body" });
-    }
-    const name = typeof body.name === "string" ? body.name.trim() : "";
-    if (!name) {
-      return res.status(400).json({ error: "name is required" });
-    }
-    const description =
-      typeof body.description === "string" ? body.description.trim() : "";
-    const tone = typeof body.tone === "string" ? body.tone : "";
-    const platforms = Array.isArray(body.platforms) ? body.platforms : [];
-
-    const orgId = makeId();
-    const createdAt = new Date().toISOString();
-    const org = {
-      id: orgId,
-      name,
-      description,
-      tone,
-      platforms,
-      createdAt,
-      createdBy: session.userId,
-    };
-
-    await kvSet(kvKeys.org(orgId), org);
-    await kvSAdd(kvKeys.orgsByUser(session.userId), orgId);
-    await kvSet(kvKeys.member(orgId, session.userId), { role: "admin" });
-
-    const userKey = kvKeys.userByEmail(session.email);
-    const user = await kvGet(userKey);
-    if (user) {
-      const updated = { ...user, activeOrgId: orgId };
-      await kvSet(userKey, updated);
-    }
-
-    return res.status(201).json({ org });
-  }
-
-  return res.status(405).json({ error: "Method not allowed" });
-}
-
-async function loadOrgScopedArray(orgId, keyBuilder) {
-  const key = keyBuilder(orgId);
-  const existing = await kvGet(key);
-  if (!existing) return [];
-  if (Array.isArray(existing)) return existing;
-  return [];
-}
-
-async function saveOrgScopedArray(orgId, keyBuilder, items) {
-  const safe = Array.isArray(items) ? items : [];
-  const json = JSON.stringify(safe);
-  if (json.length > 1_000_000) {
-    throw new Error(
-      "Payload too large to store in KV (over ~1MB). Implement chunking before increasing size."
-    );
-  }
-  await kvSet(keyBuilder(orgId), safe);
-}
-
-async function handleOrgListResource(req, res, keyBuilder) {
-  const session = await requireSession(req, res);
-  if (!session) return;
-  const { user, orgs, activeOrgId } = await loadUserAndOrgs(session);
-  const explicitOrgId = req.query?.orgId;
-  const orgId = explicitOrgId || activeOrgId;
-  if (!orgId) {
-    return res.status(400).json({ error: "No active org" });
-  }
-
-  if (!orgs.some((o) => o.id === orgId)) {
-    return res.status(403).json({ error: "Not a member of this org" });
-  }
-
-  if (req.method === "GET") {
-    const items = await loadOrgScopedArray(orgId, keyBuilder);
-    return res.status(200).json({ orgId, items });
-  }
-
-  if (req.method === "POST") {
-    let body;
-    try {
-      body =
-        typeof req.body === "string"
-          ? JSON.parse(req.body || "{}")
-          : req.body || {};
-    } catch {
-      return res.status(400).json({ error: "Invalid JSON body" });
-    }
-
-    const existing = await loadOrgScopedArray(orgId, keyBuilder);
-    let next = existing;
-
-    if (Array.isArray(body.items)) {
-      next = body.items;
-    } else if (body.item) {
-      const item = body.item;
-      if (!item.id) {
-        item.id = makeId();
-      }
-      const byId = new Map(existing.map((e) => [e.id, e]));
-      byId.set(item.id, { ...byId.get(item.id), ...item });
-      next = Array.from(byId.values());
-    }
-
-    try {
-      await saveOrgScopedArray(orgId, keyBuilder, next);
-    } catch (err) {
-      return res.status(413).json({ error: err.message });
-    }
-
-    return res.status(200).json({ orgId, items: next });
-  }
-
-  return res.status(405).json({ error: "Method not allowed" });
-}
-
 export default async function handler(req, res) {
   const ppRoute = req.query?.pp_route;
   if (ppRoute && typeof ppRoute === "string") {
     const route = ppRoute.replace(/^\/+/, "");
     const parts = route.split("/").filter(Boolean);
-    const root = parts[0];
-    const action = parts[1] || "";
-
-    if (root === "analytics") {
+    // Expect: analytics/<action>
+    if (parts[0] === "analytics") {
+      const action = parts[1] || "";
       if (action === "track") {
-        if (req.method !== "POST") {
-          return res.status(405).json({ error: "Method not allowed" });
-        }
+        if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
         return handleAnalyticsTrack(req, res);
       }
       if (action === "summary") {
-        if (req.method !== "GET") {
-          return res.status(405).json({ error: "Method not allowed" });
-        }
+        if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
         return handleAnalyticsSummary(req, res);
       }
       if (action === "events") {
-        if (req.method !== "GET") {
-          return res.status(405).json({ error: "Method not allowed" });
-        }
+        if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
         return handleAnalyticsEventsDebug(req, res);
       }
       return res.status(404).json({ error: "Unknown analytics route" });
-    }
-
-    if (root === "auth" && action === "request-link") {
-      return handleAuthRequestLink(req, res);
-    }
-
-    if (root === "auth" && action === "logout") {
-      return handleAuthLogout(req, res);
-    }
-
-    if (root === "me") {
-      return handleMe(req, res);
-    }
-
-    if (root === "orgs") {
-      return handleOrgs(req, res);
-    }
-
-    if (root === "events") {
-      return handleOrgListResource(req, res, kvKeys.events);
-    }
-
-    if (root === "posts") {
-      return handleOrgListResource(req, res, kvKeys.posts);
-    }
-
-    if (root === "queue") {
-      return handleOrgListResource(req, res, kvKeys.queue);
     }
   }
 

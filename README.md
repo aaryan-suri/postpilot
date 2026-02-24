@@ -213,7 +213,7 @@ If something is misconfigured, **Connect Instagram** shows which keys are missin
 | `FRONTEND_URL` | App base URL (e.g. `https://postpilot.company` or `http://localhost:3000`); used to derive OAuth callback if `META_REDIRECT_URI` not set | Optional (recommended) |
 | `META_REDIRECT_URI` | OAuth callback (e.g. `http://localhost:3000/api/auth/facebook/callback`). Optional if `FRONTEND_URL` or `VERCEL_URL` is set — then derived as `{base}/api/auth/facebook/callback` | Optional when derived |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob token (auto-set when you add a Blob store to the project) | For image upload → Instagram |
-| `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Vercel KV / Upstash Redis connection (auto-set when you add a KV store) | For analytics events, accounts, and org data |
+| `KV_REST_API_URL`, `KV_REST_API_TOKEN` | Vercel KV / Upstash Redis connection (auto-set when you add a KV store) | For analytics events (preferred) |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Supabase Postgres REST endpoint and service role key | Optional fallback analytics store |
 
 **Instagram publishing:** Your Instagram account must be a **Business or Creator** account connected to a **Facebook Page**. See **Instagram Setup** above for step-by-step Meta app and env configuration.
@@ -276,32 +276,6 @@ Then set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in your environment. If 
    - Use the range selector (7d / 30d / 90d) to see rollups.
    - In dev, click **Emit test event** to quickly verify that tracking and the backend pipeline are wired up.
 4. (Optional) For debugging, call `GET /api/analytics/events` in local dev — it returns the last ~500 raw analytics events. This route is **disabled in production**.
-
-### Accounts, orgs, and KV-backed data
-
-- **Passwordless login:** Users sign in with a magic link emailed to them:
-  - `POST /api/auth/request-link` stores a short-lived `magic:{token}` record in Vercel KV and sends an email with `${APP_URL}/auth/callback?token=...`.
-  - `GET /api/auth/callback?token=...` (handled by `/api/auth/callback`) creates a server-side session (`session:{sessionId}`) and sets a `postpilot_session` cookie (HttpOnly, `SameSite=Lax`, `Secure` in production), then redirects to `/app`.
-- **Session & user storage:**
-  - `user:byEmail:{email}` → `{ id, email, createdAt, activeOrgId? }`
-  - `session:{sessionId}` → `{ userId, email, createdAt, expiresAt }`
-  - `userSessions:{userId}` → set of active session IDs
-  - `magic:{token}` → `{ email, createdAt, expiresAt }` (one-time login tokens, 15 min TTL)
-- **Orgs & membership:**
-  - `org:{orgId}` → `{ id, name, description, tone, platforms, createdAt, createdBy }`
-  - `orgsByUser:{userId}` → set of org IDs the user belongs to
-  - `member:{orgId}:{userId}` → `{ role }` (e.g. `admin`)
-  - `POST /api/orgs` creates an org and adds the current user as `admin`; `GET /api/orgs` lists orgs for the current user.
-- **Org-scoped app data:**
-  - `events:{orgId}` → JSON array of events
-  - `posts:{orgId}` → JSON array of generated posts
-  - `queue:{orgId}` → JSON array of queue items
-  - These are accessed via:
-    - `GET/POST /api/events` (org-scoped events via KV; Google Calendar sync still uses OAuth-based `/api/events?calendarId=...` with a Bearer token)
-    - `GET/POST /api/posts`
-    - `GET/POST /api/queue`
-  - All org-scoped APIs infer the current user from the `postpilot_session` cookie and enforce org membership before accessing data.
-- **Demo mode:** When no session cookie is present, the app continues to use in-memory `SAMPLE_EVENTS` and local state as before; authenticated users use KV-backed org data.
 
 ## Known limitations (MVP)
 

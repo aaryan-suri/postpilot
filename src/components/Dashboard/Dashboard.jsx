@@ -29,9 +29,6 @@ function formatTimeAgo(date) {
 
 export default function Dashboard({
   orgName,
-  orgs = [],
-  activeOrgId,
-  onActiveOrgChange,
   tone,
   platforms,
   events,
@@ -99,35 +96,10 @@ export default function Dashboard({
           </div>
           <span style={{ fontSize: 18, fontWeight: 700 }}>PostPilot</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)" }}>
-              {orgName || "Untitled org"}
-            </span>
-            {orgs.length > 1 && onActiveOrgChange && (
-              <select
-                value={activeOrgId || ""}
-                onChange={(e) => onActiveOrgChange(e.target.value || null)}
-                style={{
-                  marginTop: 2,
-                  background: "rgba(10,10,12,0.9)",
-                  borderRadius: 999,
-                  border: "1px solid rgba(255,255,255,0.14)",
-                  color: "rgba(255,255,255,0.75)",
-                  fontSize: 11,
-                  padding: "2px 8px",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
-              >
-                {orgs.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginRight: 8 }}>
+            {orgName}
+          </span>
           <div
             onClick={onProfileClick}
             style={{
