@@ -3,6 +3,16 @@ import { STYLES, TONES, PLATFORMS } from "../../utils/styles";
 import { getPlatformIcon } from "../shared/PlatformIcon";
 import Navbar from "../Layout/Navbar";
 
+const oauthNoticeStyle = {
+  padding: "12px 14px",
+  borderRadius: 10,
+  border: "1px solid rgba(255,193,7,0.35)",
+  background: "rgba(255,193,7,0.08)",
+  color: "rgba(255,255,255,0.75)",
+  fontSize: 13,
+  lineHeight: 1.45,
+};
+
 export default function Onboarding({
   orgName,
   setOrgName,
@@ -157,6 +167,26 @@ export default function Onboarding({
             </>
           ) : !isConnected ? (
             <>
+
+                <div style={oauthNoticeStyle}>
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>Google Calendar connection note</div>
+                  <div style={{ marginBottom: 8 }}>
+                    While we’re finishing Google OAuth verification, you may see a warning screen during sign-in.
+                  </div>
+                  <div style={{ fontWeight: 600, marginBottom: 6 }}>To proceed:</div>
+                  <ol style={{ margin: 0, paddingLeft: 22, listStylePosition: "outside", lineHeight: 1.6}}>
+                    <li>Go to <b>Your account</b></li>
+                    <li>Click <b>Advanced</b></li>
+                    <li>Click <b>Go to Post Pilot (unsafe)</b></li>
+                  </ol>
+                  <div style={{ marginTop: 8, opacity: 0.9 }}>
+                    This is temporary while we’re getting approved.
+                  </div>
+                </div>
+
+
+
+
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <span style={{ fontSize: 24 }}>📅</span>
