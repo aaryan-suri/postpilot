@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { STYLES, TYPE_COLORS } from "../../utils/styles";
 import { getPlatformIcon } from "../shared/PlatformIcon";
-import { getEventImage } from "../../utils/imageGenerator";
+import { useEventImage } from "../../hooks/useEventImage";
+import { getEventImageSrc } from "../../utils/eventImageService";
 
 export default function ContentQueue({
   queue,
@@ -32,7 +33,7 @@ export default function ContentQueue({
   );
 
   const handlePostToInstagram = useCallback(
-    async (index) => {
+    async (index, imageSrcFromHook) => {
       const item = queue[index];
       if (!item || item.platform !== "Instagram") return;
       const auth = facebookAuthRef.current;
@@ -50,7 +51,12 @@ export default function ContentQueue({
       updateItemStatus(index, "posting");
 
       try {
-        const dataUrl = getEventImage(event, item.type || "announcement", orgName);
+        let dataUrl = imageSrcFromHook;
+
+        if (!dataUrl) {
+          dataUrl = await getEventImageSrc(event, item.type || "announcement", orgName);
+        }
+
         if (!dataUrl || !dataUrl.startsWith("data:image")) {
           throw new Error("Could not generate image for this post.");
         }
@@ -124,135 +130,191 @@ export default function ContentQueue({
           {errorMessage}
         </div>
       )}
-      {queue.map((post, i) => {
-        const status = post.status || "scheduled";
-        const isInstagram = post.platform === "Instagram";
-        const canPost = isInstagram && facebookAuth?.isConnected && status === "scheduled";
-
-        return (
-          <div
-            key={i}
-            style={{
-              ...STYLES.card,
-              padding: "18px 24px",
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-            }}
-          >
-            <span style={{ fontSize: 22 }}>{getPlatformIcon(post.platform)}</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <span style={{ fontWeight: 600, fontSize: 14 }}>{post.eventTitle}</span>
-                <span
-                  style={{
-                    padding: "2px 10px",
-                    borderRadius: 50,
-                    fontSize: 10,
-                    fontWeight: 600,
-                    background: `${TYPE_COLORS[post.type] || "#666"}18`,
-                    color: TYPE_COLORS[post.type] || "#666",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {post.type}
-                </span>
-              </div>
-              <div
-                style={{
-                  fontSize: 13,
-                  color: "rgba(255,255,255,0.4)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  maxWidth: 400,
-                }}
-              >
-                {post.caption}
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              {status === "posted" && (
-                <span
-                  style={{
-                    padding: "5px 14px",
-                    borderRadius: 50,
-                    background: "rgba(46,204,113,0.1)",
-                    color: "#2ECC71",
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
-                >
-                  ✓ Posted
-                </span>
-              )}
-              {status === "failed" && (
-                <span
-                  style={{
-                    padding: "5px 14px",
-                    borderRadius: 50,
-                    background: "rgba(232,93,49,0.1)",
-                    color: "#E85D31",
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
-                  title={post.errorDetail}
-                >
-                  Failed
-                </span>
-              )}
-              {(status === "posting" || isPosting) && (
-                <span
-                  style={{
-                    padding: "5px 14px",
-                    borderRadius: 50,
-                    background: "rgba(232,185,49,0.1)",
-                    color: "#E8B931",
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
-                >
-                  Posting…
-                </span>
-              )}
-              {status === "scheduled" && !isInstagram && (
-                <span
-                  style={{
-                    padding: "5px 14px",
-                    borderRadius: 50,
-                    background: "rgba(46,204,113,0.1)",
-                    color: "#2ECC71",
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
-                >
-                  Scheduled
-                </span>
-              )}
-              {canPost && (
-                <button
-                  type="button"
-                  onClick={() => handlePostToInstagram(i)}
-                  disabled={status === "posting"}
-                  style={{
-                    padding: "8px 16px",
-                    borderRadius: 50,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    background: STYLES.grad,
-                    border: "none",
-                    color: "#fff",
-                    cursor: isPosting ? "not-allowed" : "pointer",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  Post to Instagram
-                </button>
-              )}
-            </div>
-          </div>
-        );
-      })}
+      {queue.map((post, i) => (
+        <QueueItemRow
+          key={i}
+          index={i}
+          post={post}
+          events={events}
+          orgName={orgName}
+          facebookAuth={facebookAuth}
+          onPost={handlePostToInstagram}
+        />
+      ))}
     </div>
   );
 }
+
+function QueueItemRow({ index, post, events, orgName, facebookAuth, onPost }) {
+  const status = post.status || "scheduled";
+  const isInstagram = post.platform === "Instagram";
+  const canPost = isInstagram && facebookAuth?.isConnected && status === "scheduled";
+  const event = events.find((e) => e.id === post.eventId);
+  const {
+    src: previewSrc,
+    loading: imageLoading,
+    error: imageError,
+  } = useEventImage(event || null, post.type || "announcement", orgName);
+
+  return (
+    <div
+      style={{
+        ...STYLES.card,
+        padding: "18px 24px",
+        display: "flex",
+        alignItems: "center",
+        gap: 16,
+      }}
+    >
+      <div
+        style={{
+          width: 64,
+          height: 64,
+          borderRadius: 10,
+          overflow: "hidden",
+          border: "1px solid rgba(255,255,255,0.12)",
+          background: "rgba(255,255,255,0.03)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+          position: "relative",
+        }}
+      >
+        {imageLoading && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(90deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.02) 100%)",
+              backgroundSize: "200% 100%",
+              animation: "pp-image-skeleton 1.2s ease-in-out infinite",
+            }}
+          />
+        )}
+        {!imageLoading && previewSrc && !imageError && (
+          <img
+            src={previewSrc}
+            alt={post.eventTitle}
+            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          />
+        )}
+        {!imageLoading && (!previewSrc || imageError) && (
+          <span style={{ fontSize: 26, opacity: 0.35 }}>🖼️</span>
+        )}
+      </div>
+      <span style={{ fontSize: 22 }}>{getPlatformIcon(post.platform)}</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+          <span style={{ fontWeight: 600, fontSize: 14 }}>{post.eventTitle}</span>
+          <span
+            style={{
+              padding: "2px 10px",
+              borderRadius: 50,
+              fontSize: 10,
+              fontWeight: 600,
+              background: `${TYPE_COLORS[post.type] || "#666"}18`,
+              color: TYPE_COLORS[post.type] || "#666",
+              textTransform: "uppercase",
+            }}
+          >
+            {post.type}
+          </span>
+        </div>
+        <div
+          style={{
+            fontSize: 13,
+            color: "rgba(255,255,255,0.4)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            maxWidth: 400,
+          }}
+        >
+          {post.caption}
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {status === "posted" && (
+          <span
+            style={{
+              padding: "5px 14px",
+              borderRadius: 50,
+              background: "rgba(46,204,113,0.1)",
+              color: "#2ECC71",
+              fontSize: 12,
+              fontWeight: 600,
+            }}
+          >
+            ✓ Posted
+          </span>
+        )}
+        {status === "failed" && (
+          <span
+            style={{
+              padding: "5px 14px",
+              borderRadius: 50,
+              background: "rgba(232,93,49,0.1)",
+              color: "#E85D31",
+              fontSize: 12,
+              fontWeight: 600,
+            }}
+            title={post.errorDetail}
+          >
+            Failed
+          </span>
+        )}
+        {status === "posting" && (
+          <span
+            style={{
+              padding: "5px 14px",
+              borderRadius: 50,
+              background: "rgba(232,185,49,0.1)",
+              color: "#E8B931",
+              fontSize: 12,
+              fontWeight: 600,
+            }}
+          >
+            Posting…
+          </span>
+        )}
+        {status === "scheduled" && !isInstagram && (
+          <span
+            style={{
+              padding: "5px 14px",
+              borderRadius: 50,
+              background: "rgba(46,204,113,0.1)",
+              color: "#2ECC71",
+              fontSize: 12,
+              fontWeight: 600,
+            }}
+          >
+            Scheduled
+          </span>
+        )}
+        {canPost && (
+          <button
+            type="button"
+            onClick={() => onPost(index, previewSrc)}
+            disabled={status === "posting"}
+            style={{
+              padding: "8px 16px",
+              borderRadius: 50,
+              fontSize: 12,
+              fontWeight: 600,
+              background: STYLES.grad,
+              border: "none",
+              color: "#fff",
+              cursor: status === "posting" ? "not-allowed" : "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            Post to Instagram
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+

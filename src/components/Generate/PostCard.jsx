@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { STYLES, TYPE_COLORS } from "../../utils/styles";
 import { getPlatformIcon } from "../shared/PlatformIcon";
-import { getEventImage, generateCountdownImage } from "../../utils/imageGenerator";
+import { useEventImage } from "../../hooks/useEventImage";
 
 function getPlatformFooter(platform, caption) {
   if (platform === "Instagram") {
@@ -52,11 +52,20 @@ export default function PostCard({
   const [showPhotoPicker, setShowPhotoPicker] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editCaption, setEditCaption] = useState(post.caption);
-  const [generatedImage, setGeneratedImage] = useState(null);
   // Tracks current calendar day so reminder countdown images refresh when the day changes
   const [todayKey, setTodayKey] = useState(() => new Date().toDateString());
   const typeColor = TYPE_COLORS[post.type] || "#666";
   const hasEventPhotos = eventPhotos && eventPhotos.length > 0;
+  const {
+    src: generatedImage,
+    loading: imageLoading,
+    error: imageError,
+    regenerate: regenerateImage,
+  } = useEventImage(
+    !selectedPhoto ? event : null,
+    post.type || "announcement",
+    orgName
+  );
   
   // Update todayKey when the calendar day changes (e.g. user keeps screen open past midnight)
   useEffect(() => {
@@ -66,28 +75,13 @@ export default function PostCard({
     }, 60 * 1000); // check every minute
     return () => clearInterval(interval);
   }, []);
-  
+
+  // For reminder posts, refresh the generated image once per calendar day
   useEffect(() => {
-    if (!selectedPhoto && event) {
-      // Generate image based on post type
-      if (post.type === 'reminder' && event.date) {
-        try {
-          const daysUntil = Math.ceil((new Date(event.date) - new Date()) / (1000 * 60 * 60 * 24));
-          const imageUrl = generateCountdownImage(event, daysUntil, orgName);
-          setGeneratedImage(imageUrl);
-        } catch (e) {
-          // Invalid date, fall back to regular image
-          const imageUrl = getEventImage(event, post.type || 'announcement', orgName);
-          setGeneratedImage(imageUrl);
-        }
-      } else {
-        const imageUrl = getEventImage(event, post.type || 'announcement', orgName);
-        setGeneratedImage(imageUrl);
-      }
-    } else {
-      setGeneratedImage(null);
+    if (post.type === "reminder" && event && !selectedPhoto && regenerateImage) {
+      regenerateImage();
     }
-  }, [post.type, event, selectedPhoto, orgName, todayKey]);
+  }, [todayKey, post.type, event, selectedPhoto, regenerateImage]);
 
   const handleSaveEdit = () => {
     onUpdateCaption?.(editCaption);
@@ -147,7 +141,10 @@ export default function PostCard({
         <div
           style={{
             background: "rgba(255,255,255,0.04)",
-            border: selectedPhoto || generatedImage ? "1px solid rgba(255,255,255,0.15)" : "1px dashed rgba(255,255,255,0.1)",
+            border:
+              selectedPhoto || generatedImage
+                ? "1px solid rgba(255,255,255,0.15)"
+                : "1px dashed rgba(255,255,255,0.1)",
             borderRadius: 12,
             padding: "14px 18px",
             marginBottom: 16,
@@ -200,52 +197,6 @@ export default function PostCard({
                 )}
               </div>
             </div>
-          ) : generatedImage ? (
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-              <img
-                src={generatedImage}
-                alt={post.visual_suggestion}
-                style={{
-                  width: 120,
-                  height: 120,
-                  objectFit: "cover",
-                  borderRadius: 8,
-                  flexShrink: 0,
-                  border: "1px solid rgba(255,255,255,0.1)",
-                }}
-              />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div
-                  style={{
-                    fontSize: 13,
-                    color: "rgba(255,255,255,0.4)",
-                    fontStyle: "italic",
-                    lineHeight: 1.5,
-                    marginBottom: 8,
-                  }}
-                >
-                  {post.visual_suggestion}
-                </div>
-                {hasEventPhotos && (
-                  <button
-                    onClick={() => setShowPhotoPicker(!showPhotoPicker)}
-                    style={{
-                      padding: "6px 14px",
-                      borderRadius: 8,
-                      border: "1px solid rgba(232,89,49,0.4)",
-                      background: "rgba(232,89,49,0.1)",
-                      color: "#E8A031",
-                      fontSize: 12,
-                      fontWeight: 500,
-                      cursor: "pointer",
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    {showPhotoPicker ? "Cancel" : "📷 Use your photo instead"}
-                  </button>
-                )}
-              </div>
-            </div>
           ) : (
             <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
               <div
@@ -261,7 +212,34 @@ export default function PostCard({
                   border: "1px dashed rgba(255,255,255,0.1)",
                 }}
               >
-                <span style={{ fontSize: 32, opacity: 0.3 }}>🖼️</span>
+                {imageLoading ? (
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      borderRadius: 8,
+                      background:
+                        "linear-gradient(90deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.02) 100%)",
+                      backgroundSize: "200% 100%",
+                      animation: "pp-image-skeleton 1.2s ease-in-out infinite",
+                    }}
+                  />
+                ) : generatedImage && !imageError ? (
+                  <img
+                    src={generatedImage}
+                    alt={post.visual_suggestion}
+                    style={{
+                      width: 120,
+                      height: 120,
+                      objectFit: "cover",
+                      borderRadius: 8,
+                      flexShrink: 0,
+                      border: "1px solid rgba(255,255,255,0.1)",
+                    }}
+                  />
+                ) : (
+                  <span style={{ fontSize: 32, opacity: 0.3 }}>🖼️</span>
+                )}
               </div>
               <div style={{ flex: 1 }}>
                 <div

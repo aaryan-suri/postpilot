@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { STYLES } from "../../utils/styles";
-import { getEventImage } from "../../utils/imageGenerator";
+import { useEventImage } from "../../hooks/useEventImage";
 
 export default function EventCard({
   event,
@@ -12,19 +12,12 @@ export default function EventCard({
   eventTypes = [],
   orgName = "",
 }) {
-  const [eventImage, setEventImage] = useState(null);
-  
-  useEffect(() => {
-    // Generate image when component mounts or event changes
-    try {
-      const imageUrl = getEventImage(event, 'announcement', orgName);
-      setEventImage(imageUrl);
-    } catch (e) {
-      console.warn('Failed to generate event image:', e);
-      setEventImage(null);
-    }
-  }, [event.id, event.date, event.time, event.title, event.location, event.type, orgName]);
-  
+  const { src: eventImage, loading, error } = useEventImage(
+    event,
+    event?.type || "announcement",
+    orgName
+  );
+
   return (
     <div
       style={{
@@ -50,20 +43,58 @@ export default function EventCard({
         e.currentTarget.style.boxShadow = "none";
       }}
     >
-      {eventImage && (
-        <img
-          src={eventImage}
-          alt={event.title}
-          style={{
-            width: 100,
-            height: 100,
-            objectFit: "cover",
-            borderRadius: 12,
-            flexShrink: 0,
-            border: "1px solid rgba(255,255,255,0.1)",
-          }}
-        />
-      )}
+      <div
+        style={{
+          width: 100,
+          height: 100,
+          borderRadius: 12,
+          flexShrink: 0,
+          border: "1px solid rgba(255,255,255,0.1)",
+          background: "rgba(255,255,255,0.03)",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        {loading && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "linear-gradient(90deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.02) 100%)",
+              backgroundSize: "200% 100%",
+              animation: "pp-image-skeleton 1.2s ease-in-out infinite",
+            }}
+          />
+        )}
+        {!loading && eventImage && !error && (
+          <img
+            src={eventImage}
+            alt={event.title}
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              display: "block",
+            }}
+          />
+        )}
+        {!loading && (!eventImage || error) && (
+          <div
+            style={{
+              width: "100%",
+              height: "100%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "rgba(255,255,255,0.25)",
+              fontSize: 28,
+            }}
+          >
+            🖼️
+          </div>
+        )}
+      </div>
       <div style={{ flex: 1 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
           <span style={{ fontWeight: 600, fontSize: 15 }}>{event.title}</span>

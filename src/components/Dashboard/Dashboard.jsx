@@ -8,6 +8,7 @@ import ContentQueue from "./ContentQueue";
 import Analytics from "./Analytics";
 import PhotoLibrary from "./PhotoLibrary";
 import Settings from "./Settings";
+import GeneratedPreviewStrip from "./GeneratedPreviewStrip";
 
 const EVENT_TYPES = [
   { value: "gbm", label: "GBM / General Meeting" },
@@ -347,6 +348,10 @@ export default function Dashboard({
                     events to your Google Calendar and they&apos;ll show up here automatically.
                   </p>
                 </div>
+              )}
+
+              {events.length > 0 && (
+                <GeneratedPreviewStrip events={events} orgName={orgName} />
               )}
 
               {showAddEvent && (
