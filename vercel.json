@@ -1,6 +1,13 @@
 {
   "rewrites": [
     { "source": "/api/analytics/(.*)", "destination": "/api/generate?pp_route=analytics/$1" },
+    { "source": "/api/auth/request-link", "destination": "/api/generate?pp_route=auth/request-link" },
+    { "source": "/api/auth/logout", "destination": "/api/generate?pp_route=auth/logout" },
+    { "source": "/api/me", "destination": "/api/generate?pp_route=me" },
+    { "source": "/api/orgs", "destination": "/api/generate?pp_route=orgs" },
+    { "source": "/api/org-events", "destination": "/api/generate?pp_route=events" },
+    { "source": "/api/posts", "destination": "/api/generate?pp_route=posts" },
+    { "source": "/api/queue", "destination": "/api/generate?pp_route=queue" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/((?!api|assets|.*\\.).*)", "destination": "/index.html" }
   ]

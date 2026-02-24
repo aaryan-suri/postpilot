@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { STYLES } from "../../utils/styles";
 import { track } from "../../lib/analytics";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 const ACCEPT_TYPES = "image/jpeg,image/jpg,image/png,image/webp";
 const MAX_SIZE_MB = 5;
@@ -146,6 +147,7 @@ export default function PhotoLibrary({ photos, events, onPhotosChange }) {
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState(null);
   const fileInputRef = useRef(null);
+  const { activeOrgId } = useAuth();
 
   const processFiles = (fileList) => {
     setError(null);
@@ -180,9 +182,13 @@ export default function PhotoLibrary({ photos, events, onPhotosChange }) {
         if (done === files.length) {
           onPhotosChange([...photos, ...results]);
           try {
-            track("photo_uploaded", {
-              count: results.length,
-            });
+            track(
+              "photo_uploaded",
+              {
+                count: results.length,
+              },
+              { orgId: activeOrgId || undefined }
+            );
           } catch {
             // ignore analytics errors
           }
@@ -213,10 +219,14 @@ export default function PhotoLibrary({ photos, events, onPhotosChange }) {
     );
     if (tagEventId) {
       try {
-        track("photo_assigned", {
-          photoId,
-          eventId: tagEventId,
-        });
+        track(
+          "photo_assigned",
+          {
+            photoId,
+            eventId: tagEventId,
+          },
+          { orgId: activeOrgId || undefined }
+        );
       } catch {
         // ignore analytics errors
       }

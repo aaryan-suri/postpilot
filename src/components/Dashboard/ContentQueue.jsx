@@ -4,6 +4,7 @@ import { getPlatformIcon } from "../shared/PlatformIcon";
 import { useEventImage } from "../../hooks/useEventImage";
 import { getEventImageSrc } from "../../utils/eventImageService";
 import { track } from "../../lib/analytics";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 export default function ContentQueue({
   queue,
@@ -14,6 +15,8 @@ export default function ContentQueue({
 }) {
   const [errorMessage, setErrorMessage] = useState(null);
 
+  const { activeOrgId } = useAuth();
+
   const facebookAuthRef = useRef(facebookAuth);
   useEffect(() => {
     facebookAuthRef.current = facebookAuth;
@@ -22,15 +25,33 @@ export default function ContentQueue({
   const updateItemStatus = useCallback(
     (index, status, errorDetail) => {
       if (!setContentQueue) return;
+      let updatedItem = null;
       setContentQueue((prev) => {
         const next = [...prev];
         if (next[index]) {
           next[index] = { ...next[index], status, errorDetail };
+          updatedItem = next[index];
         }
         return next;
       });
+
+      if (updatedItem && activeOrgId) {
+        const persist = async () => {
+          try {
+            await fetch("/api/queue", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ item: updatedItem }),
+            });
+          } catch {
+            // ignore persistence errors
+          }
+        };
+        persist();
+      }
     },
-    [setContentQueue]
+    [setContentQueue, activeOrgId]
   );
 
   const handlePostToInstagram = useCallback(
@@ -53,12 +74,16 @@ export default function ContentQueue({
 
       const publishStartedAt = new Date().toISOString();
       try {
-        track("publish_attempted", {
-          platform: "instagram",
-          eventId: item.eventId,
-          approvedAt: item.approvedAt,
-          publishStartedAt,
-        });
+        track(
+          "publish_attempted",
+          {
+            platform: "instagram",
+            eventId: item.eventId,
+            approvedAt: item.approvedAt,
+            publishStartedAt,
+          },
+          { orgId: activeOrgId || undefined }
+        );
       } catch {
         // ignore analytics errors
       }
@@ -110,12 +135,16 @@ export default function ContentQueue({
         updateItemStatus(index, "posted");
         try {
           const publishedAt = new Date().toISOString();
-          track("publish_succeeded", {
-            platform: "instagram",
-            eventId: item.eventId,
-            approvedAt: item.approvedAt,
-            publishedAt,
-          });
+          track(
+            "publish_succeeded",
+            {
+              platform: "instagram",
+              eventId: item.eventId,
+              approvedAt: item.approvedAt,
+              publishedAt,
+            },
+            { orgId: activeOrgId || undefined }
+          );
         } catch {
           // ignore analytics errors
         }
@@ -125,13 +154,17 @@ export default function ContentQueue({
         setErrorMessage(msg);
         try {
           const failedAt = new Date().toISOString();
-          track("publish_failed", {
-            platform: "instagram",
-            eventId: item.eventId,
-            approvedAt: item.approvedAt,
-            publishedAt: failedAt,
-            errorCode: err.message,
-          });
+          track(
+            "publish_failed",
+            {
+              platform: "instagram",
+              eventId: item.eventId,
+              approvedAt: item.approvedAt,
+              publishedAt: failedAt,
+              errorCode: err.message,
+            },
+            { orgId: activeOrgId || undefined }
+          );
         } catch {
           // ignore analytics errors
         }

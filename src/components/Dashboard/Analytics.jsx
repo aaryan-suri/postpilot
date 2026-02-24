@@ -16,6 +16,7 @@ import {
   Legend,
 } from "recharts";
 import { track } from "../../lib/analytics";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 const RANGE_OPTIONS = [
   { value: "7d", label: "Last 7 days" },
@@ -49,6 +50,8 @@ export default function Analytics() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [summary, setSummary] = useState(null);
+
+  const { activeOrgId } = useAuth();
 
   useEffect(() => {
     let cancelled = false;
@@ -117,11 +120,15 @@ export default function Analytics() {
 
   const handleTestEvent = async () => {
     try {
-      await track("event_ingested", {
-        calendarSource: "demo",
-        count: 1,
-        test: true,
-      });
+      await track(
+        "event_ingested",
+        {
+          calendarSource: "demo",
+          count: 1,
+          test: true,
+        },
+        { orgId: activeOrgId || undefined }
+      );
     } catch {
       // ignore
     }

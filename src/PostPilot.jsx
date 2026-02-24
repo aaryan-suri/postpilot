@@ -4,6 +4,7 @@ import { generateSmartContent } from "./utils/contentEngine";
 import { useGoogleAuth } from "./hooks/useGoogleAuth";
 import { useFacebookAuth } from "./hooks/useFacebookAuth";
 import { track } from "./lib/analytics";
+import { useAuth } from "./context/AuthContext.jsx";
 
 import Landing from "./components/Landing/Landing";
 import Onboarding from "./components/Onboarding/Onboarding";
@@ -29,7 +30,9 @@ export default function PostPilot({ initialScreen = "landing" }) {
   const facebookAuth = useFacebookAuth();
   const { isConnected: googleCalendarConnected, calendarId, fetchWithAuth } = googleAuth;
 
-  const isDemoMode = !googleCalendarConnected;
+  const { user, orgs, activeOrgId, setActiveOrgId } = useAuth();
+
+  const isDemoMode = !user && !googleCalendarConnected;
 
   const [screen, setScreen] = useState(initialScreen);
   const [screenHistory, setScreenHistory] = useState([initialScreen]);
@@ -123,16 +126,37 @@ export default function PostPilot({ initialScreen = "landing" }) {
         return;
       }
       if (res.ok && data?.events) {
+        const eventsFromCalendar = Array.isArray(data.events)
+          ? data.events
+          : [];
         if (isMountedRef.current && id === fetchIdRef.current) {
-          setEvents(data.events);
+          setEvents(eventsFromCalendar);
           setEventsLastSynced(new Date());
           try {
-            track("event_ingested", {
-              calendarSource: "google",
-              count: Array.isArray(data.events) ? data.events.length : 0,
-            });
+            track(
+              "event_ingested",
+              {
+                calendarSource: "google",
+                count: eventsFromCalendar.length,
+              },
+              { orgId: activeOrgId || undefined }
+            );
           } catch {
             // ignore analytics errors
+          }
+        }
+
+        if (user && activeOrgId && eventsFromCalendar.length > 0) {
+          // Best-effort: mirror Google Calendar events into org-scoped KV for authenticated users
+          try {
+            await fetch("/api/org-events", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ items: eventsFromCalendar }),
+            });
+          } catch {
+            // ignore persistence errors
           }
         }
       } else if (res.status === 401) {
@@ -158,29 +182,91 @@ export default function PostPilot({ initialScreen = "landing" }) {
       clearTimeout(hardTimeoutId);
       if (isMountedRef.current && id === fetchIdRef.current) setEventsLoading(false);
     }
-  }, [googleCalendarConnected, calendarId, fetchWithAuth]);
+  }, [googleCalendarConnected, calendarId, fetchWithAuth, user, activeOrgId]);
 
   useEffect(() => {
     if (screen !== "dashboard") return;
-    if (googleCalendarConnected && calendarId) {
-      fetchEvents();
-    } else {
-      setEvents([...SAMPLE_EVENTS, ...demoEvents]);
-      setEventsError(null);
-      setEventsLastSynced(null);
-      if (!demoIngestTrackedRef.current) {
-        demoIngestTrackedRef.current = true;
-        try {
-          track("event_ingested", {
-            calendarSource: "demo",
-            count: SAMPLE_EVENTS.length,
-          });
-        } catch {
-          // ignore analytics errors
+    // Logged-out demo mode
+    if (!user) {
+      if (googleCalendarConnected && calendarId) {
+        fetchEvents();
+      } else {
+        setEvents([...SAMPLE_EVENTS, ...demoEvents]);
+        setEventsError(null);
+        setEventsLastSynced(null);
+        if (!demoIngestTrackedRef.current) {
+          demoIngestTrackedRef.current = true;
+          try {
+            track("event_ingested", {
+              calendarSource: "demo",
+              count: SAMPLE_EVENTS.length,
+            });
+          } catch {
+            // ignore analytics errors
+          }
         }
       }
     }
-  }, [screen, googleCalendarConnected, calendarId, fetchEvents, demoEvents]);
+  }, [screen, googleCalendarConnected, calendarId, fetchEvents, demoEvents, user]);
+
+  // Load org-scoped data for authenticated users
+  useEffect(() => {
+    if (!user || !activeOrgId) return;
+    if (screen !== "dashboard" && screen !== "profile" && screen !== "generate") return;
+
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const [orgsRes, eventsRes, postsRes, queueRes] = await Promise.all([
+          fetch("/api/orgs", { credentials: "include" }),
+          fetch("/api/org-events", { credentials: "include" }),
+          fetch("/api/posts", { credentials: "include" }),
+          fetch("/api/queue", { credentials: "include" }),
+        ]);
+
+        const orgsJson = orgsRes.ok ? await orgsRes.json().catch(() => ({})) : {};
+        const eventsJson = eventsRes.ok ? await eventsRes.json().catch(() => ({})) : {};
+        const postsJson = postsRes.ok ? await postsRes.json().catch(() => ({})) : {};
+        const queueJson = queueRes.ok ? await queueRes.json().catch(() => ({})) : {};
+
+        if (cancelled) return;
+
+        if (Array.isArray(orgsJson.orgsDetailed)) {
+          const activeOrg = orgsJson.orgsDetailed.find((o) => o.id === activeOrgId);
+          if (activeOrg) {
+            setOrgName(activeOrg.name || "");
+            setOrgDesc(activeOrg.description || "");
+            setTone(activeOrg.tone || "");
+            if (Array.isArray(activeOrg.platforms)) {
+              setPlatforms(activeOrg.platforms);
+            }
+          }
+        }
+
+        const orgEvents = Array.isArray(eventsJson.items) ? eventsJson.items : [];
+        setEvents(orgEvents);
+
+        const flatPosts = Array.isArray(postsJson.items) ? postsJson.items : [];
+        const grouped = flatPosts.reduce((acc, p) => {
+          if (!p.eventId) return acc;
+          if (!acc[p.eventId]) acc[p.eventId] = [];
+          acc[p.eventId].push(p);
+          return acc;
+        }, {});
+        setGeneratedPosts(grouped);
+
+        const q = Array.isArray(queueJson.items) ? queueJson.items : [];
+        setContentQueue(q);
+      } catch {
+        // swallow errors; demo / calendar flows still work
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [user, activeOrgId, screen]);
 
   const navigateTo = (s) => {
     setScreenHistory((prev) => [...prev, s]);
@@ -210,10 +296,31 @@ export default function PostPilot({ initialScreen = "landing" }) {
 
       setEvents((prev) => [...prev, createdEvent]);
 
+      if (user && activeOrgId) {
+        // Persist manual event server-side for authenticated orgs
+        const persist = async () => {
+          try {
+            await fetch("/api/events", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ item: createdEvent }),
+            });
+          } catch {
+            // ignore persistence errors; local state remains
+          }
+        };
+        persist();
+      }
+
       try {
-        track("event_added_manual", {
-          eventId: createdEvent.id,
-        });
+        track(
+          "event_added_manual",
+          {
+            eventId: createdEvent.id,
+          },
+          { orgId: activeOrgId || undefined }
+        );
       } catch {
         // ignore analytics errors
       }
@@ -290,16 +397,20 @@ export default function PostPilot({ initialScreen = "landing" }) {
               );
               const avgLength =
                 posts.length > 0 ? totalChars / posts.length : 0;
-              track("post_generated", {
-                eventId: event.id,
-                eventTitle: event.title,
-                platform: "instagram",
-                tone,
-                hasImage: false,
-                postLength: avgLength,
-                postsCount: posts.length,
-                generatedAt,
-              });
+        track(
+          "post_generated",
+          {
+            eventId: event.id,
+            eventTitle: event.title,
+            platform: "instagram",
+            tone,
+            hasImage: false,
+            postLength: avgLength,
+            postsCount: posts.length,
+            generatedAt,
+          },
+          { orgId: activeOrgId || undefined }
+        );
             } catch {
               // ignore analytics errors
             }
@@ -328,16 +439,20 @@ export default function PostPilot({ initialScreen = "landing" }) {
         );
         const avgLength =
           smartPosts.length > 0 ? totalChars / smartPosts.length : 0;
-        track("post_generated", {
-          eventId: event.id,
-          eventTitle: event.title,
-          platform: "instagram",
-          tone,
-          hasImage: false,
-          postLength: avgLength,
-          postsCount: smartPosts.length,
-          generatedAt,
-        });
+        track(
+          "post_generated",
+          {
+            eventId: event.id,
+            eventTitle: event.title,
+            platform: "instagram",
+            tone,
+            hasImage: false,
+            postLength: avgLength,
+            postsCount: smartPosts.length,
+            generatedAt,
+          },
+          { orgId: activeOrgId || undefined }
+        );
       } catch {
         // ignore analytics errors
       }
@@ -380,21 +495,46 @@ export default function PostPilot({ initialScreen = "landing" }) {
       const approvedAt = new Date().toISOString();
       const approvedPost = { ...post, eventId, eventTitle, approvedAt };
       setApprovedPosts((prev) => [...prev, approvedPost]);
-      setContentQueue((prev) => [...prev, { ...approvedPost, status: "scheduled" }]);
+      const queued = { ...approvedPost, status: "scheduled" };
+      setContentQueue((prev) => [...prev, queued]);
+
+      if (user && activeOrgId) {
+        const persist = async () => {
+          try {
+            await fetch("/api/queue", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ item: queued }),
+            });
+          } catch {
+            // ignore
+          }
+        };
+        persist();
+      }
       setToastMessage("Post approved and queued!");
       try {
         const platform = (post.platform || "instagram").toLowerCase();
-        track("post_approved", {
-          eventId,
-          platform,
-          generatedAt: post.generatedAt,
-          approvedAt,
-        });
-        track("post_queued", {
-          eventId,
-          platform,
-          approvedAt,
-        });
+        track(
+          "post_approved",
+          {
+            eventId,
+            platform,
+            generatedAt: post.generatedAt,
+            approvedAt,
+          },
+          { orgId: activeOrgId || undefined }
+        );
+        track(
+          "post_queued",
+          {
+            eventId,
+            platform,
+            approvedAt,
+          },
+          { orgId: activeOrgId || undefined }
+        );
       } catch {
         // ignore analytics errors
       }
@@ -420,6 +560,26 @@ export default function PostPilot({ initialScreen = "landing" }) {
   }
 
   if (screen === "onboard") {
+    const handleLaunch = async () => {
+      if (user && (!orgs || orgs.length === 0)) {
+        try {
+          await fetch("/api/orgs", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              name: orgName,
+              description: orgDesc,
+              tone,
+              platforms,
+            }),
+          });
+        } catch {
+          // ignore org creation errors; user stays in local-only mode
+        }
+      }
+      navigateTo("dashboard");
+    };
     return (
       <Onboarding
         orgName={orgName}
@@ -431,7 +591,7 @@ export default function PostPilot({ initialScreen = "landing" }) {
         platforms={platforms}
         togglePlatform={togglePlatform}
         onBack={goBack}
-        onLaunch={() => navigateTo("dashboard")}
+        onLaunch={handleLaunch}
         googleAuth={googleAuth}
       />
     );
@@ -507,38 +667,45 @@ export default function PostPilot({ initialScreen = "landing" }) {
 
   return (
     <>
-    <Dashboard
-      orgName={orgName}
-      tone={tone}
-      platforms={platforms}
-      events={events}
-      generatedPosts={generatedPosts}
-      approvedPosts={approvedPosts}
-      contentQueue={contentQueue}
-      setContentQueue={setContentQueue}
-      activeTab={activeTab}
-      setActiveTab={setActiveTab}
-      onProfileClick={() => navigateTo("profile")}
-      onLandingClick={() => navigateTo("landing")}
-      onGenerateContent={generateContent}
-      showAddEvent={showAddEvent}
-      setShowAddEvent={setShowAddEvent}
-      newEvent={newEvent}
-      setNewEvent={setNewEvent}
-      addEvent={addEvent}
-      photos={photos}
-      onPhotosChange={setPhotos}
-      googleCalendarConnected={googleCalendarConnected}
-      onConnectCalendar={googleAuth.connect}
-      facebookAuth={facebookAuth}
-      eventsLoading={eventsLoading}
-      eventsError={eventsError}
-      eventsLastSynced={eventsLastSynced}
-      onRefreshEvents={fetchEvents}
-      isDemoMode={isDemoMode}
-      onEventTypeChange={updateEventType}
-    />
-    <Toast message={toastMessage} visible={!!toastMessage} onHide={() => setToastMessage(null)} />
+      <Dashboard
+        orgName={orgName}
+        orgs={orgs || []}
+        activeOrgId={activeOrgId}
+        onActiveOrgChange={setActiveOrgId}
+        tone={tone}
+        platforms={platforms}
+        events={events}
+        generatedPosts={generatedPosts}
+        approvedPosts={approvedPosts}
+        contentQueue={contentQueue}
+        setContentQueue={setContentQueue}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        onProfileClick={() => navigateTo("profile")}
+        onLandingClick={() => navigateTo("landing")}
+        onGenerateContent={generateContent}
+        showAddEvent={showAddEvent}
+        setShowAddEvent={setShowAddEvent}
+        newEvent={newEvent}
+        setNewEvent={setNewEvent}
+        addEvent={addEvent}
+        photos={photos}
+        onPhotosChange={setPhotos}
+        googleCalendarConnected={googleCalendarConnected}
+        onConnectCalendar={googleAuth.connect}
+        facebookAuth={facebookAuth}
+        eventsLoading={eventsLoading}
+        eventsError={eventsError}
+        eventsLastSynced={eventsLastSynced}
+        onRefreshEvents={fetchEvents}
+        isDemoMode={isDemoMode}
+        onEventTypeChange={updateEventType}
+      />
+      <Toast
+        message={toastMessage}
+        visible={!!toastMessage}
+        onHide={() => setToastMessage(null)}
+      />
     </>
   );
 }
